@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "380083803391",
+    "project_id": "handysix-44909",
+    "storage_bucket": "handysix-44909.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:380083803391:android:029de1176c7f40c17f68ca",
+        "android_client_info": {
+          "package_name": "com.example.hand_cricket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM_mr1jCqkPYLrrnInOBokTu9eFjI6U3Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
