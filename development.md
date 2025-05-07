@@ -1,5 +1,7 @@
 # 🏏 Hand Cricket Game MVP Development Plan
 
+# HandySix (App Name)
+
 ## 🔰 Phase 1: Project Setup
 
 ### Step 1: Initialize Flutter Project
