@@ -1,39 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
+import 'package:hand_cricket/core/routes/app_router.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/providers/auth_provider.dart';
 
-class AuthScreen extends ConsumerWidget {
+class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends ConsumerState<AuthScreen> {
+  @override
+  Widget build(BuildContext context) {
     // Check if the user is already logged in
     AuthState authState = ref.read(authProvider);
     final hasAuthChange = ref.watch(
       authProvider.select(
-        (state) => state is AuthSuccess || state is AuthError,
+        (state) =>
+            state is AuthSuccess ||
+            state is AuthError ||
+            state is Authenticated,
       ),
     );
     if (hasAuthChange) {
       authState = ref.read(authProvider);
     }
+    if (authState is Authenticated) {
+      // If the user is already authenticated, navigate to the home screen
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppRouter.isAuthenticated = true;
+        context.go('/home');
+      });
+    }
     if (authState is AuthSuccess) {
       // If the user is logged in, navigate to the home screen
       WidgetsBinding.instance.addPostFrameCallback((_) {
         //Navigator.pushReplacementNamed(context, '/home');
-        final authState = ref.read(authProvider);
+        final user = (authState as AuthSuccess).user;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'User is already logged in ${(authState as AuthSuccess).user.uid}',
-            ),
+            content: Text('Welcome Back, ${user.name ?? 'Guest'}'),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
+        // Set the authentication state to true
+        AppRouter.isAuthenticated = true;
+        context.go('/home');
       });
     }
     if (authState is AuthError) {
@@ -43,6 +62,7 @@ class AuthScreen extends ConsumerWidget {
           SnackBar(
             content: Text((authState as AuthError).error),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       });

@@ -36,6 +36,25 @@ class AuthProvider extends StateNotifier<AuthState> {
       state = AuthError(e.toString());
     }
   }
+
+  void getCurrentUser() {
+    try {
+      final user = _authService.getCurrentUser();
+      if (user != null) {
+        final userModel = UserModel(
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName,
+          avatar: user.photoURL,
+        );
+        state = Authenticated(userModel);
+      } else {
+        state = Unauthenticated();
+      }
+    } catch (e) {
+      state = AuthError(e.toString());
+    }
+  }
 }
 
 abstract class AuthState extends Equatable {
@@ -51,6 +70,13 @@ class AuthSuccess extends AuthState {
   final UserModel user;
   AuthSuccess(this.user);
 }
+
+class Authenticated extends AuthState {
+  final UserModel user;
+  Authenticated(this.user);
+}
+
+class Unauthenticated extends AuthState {}
 
 class AuthError extends AuthState {
   final String error;

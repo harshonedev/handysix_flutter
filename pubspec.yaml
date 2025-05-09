@@ -19,6 +19,7 @@ dependencies:
   google_fonts: ^6.2.1
   google_sign_in: ^6.3.0
   logger: ^2.5.0
+  flutter_cache_manager: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -33,3 +34,10 @@ flutter:
     - assets/images/cricket_ground.svg
     - assets/images/google_logo.svg
     - assets/images/guest_icon.svg
+    - assets/images/batman_avatar.png
+    - assets/images/cricket_ball.svg
+    - assets/hand_gestures/0_left.png
+    - assets/hand_gestures/2_right.png
+    - assets/hand_gestures/3_left.png
+    - assets/images/helmet.svg
+    - assets/images/target.svg
