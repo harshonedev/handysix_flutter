@@ -1,7 +1,9 @@
 import 'package:go_router/go_router.dart';
 import 'package:hand_cricket/screens/auth/auth_screen.dart';
+import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/screens/home/splash_screen.dart';
+import 'package:hand_cricket/widgets/game_background.dart';
 
 class AppRouter {
   static bool isAuthenticated = false;
@@ -9,9 +11,13 @@ class AppRouter {
     initialLocation: '/',
 
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+      GoRoute(path: '/', builder: (context, state) => const GameBackground()),
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+      GoRoute(
+        path: '/practice-game',
+        builder: (context, state) => const PracticeGameScreen(),
+      ), // Placeholder for practice game screen
     ],
     redirect: (context, state) {
       final isAuth = state.matchedLocation == '/auth';

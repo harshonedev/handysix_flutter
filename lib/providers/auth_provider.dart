@@ -10,7 +10,7 @@ class AuthProvider extends StateNotifier<AuthState> {
       super(AuthInitial());
 
   Future<void> signInWithGoogle() async {
-    state = AuthLoading();
+    state = AuthLoading(authType: AuthType.google);
     try {
       final user = await _authService.signInWithGoogle();
       if (user != null) {
@@ -24,7 +24,7 @@ class AuthProvider extends StateNotifier<AuthState> {
   }
 
   Future<void> signInAsGuest() async {
-    state = AuthLoading();
+    state = AuthLoading(authType: AuthType.anonymous);
     try {
       final user = await _authService.signInAnonymously();
       if (user != null) {
@@ -64,7 +64,10 @@ abstract class AuthState extends Equatable {
 
 class AuthInitial extends AuthState {}
 
-class AuthLoading extends AuthState {}
+class AuthLoading extends AuthState {
+  final AuthType authType;
+  AuthLoading({ required this.authType});
+}
 
 class AuthSuccess extends AuthState {
   final UserModel user;
@@ -81,4 +84,9 @@ class Unauthenticated extends AuthState {}
 class AuthError extends AuthState {
   final String error;
   AuthError(this.error);
+}
+
+enum AuthType {
+  google,
+  anonymous,
 }

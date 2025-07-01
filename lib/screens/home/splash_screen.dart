@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/routes/app_router.dart';
@@ -44,16 +43,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppTheme.backgroundColor1,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              'assets/images/app_logo.svg',
-              height: 120,
-              width: 60,
-            ),
+            Image.asset('assets/images/app_logo.png', height: 120, width: 60),
             SizedBox(height: 20),
             CircularProgressIndicator(
               color: Colors.white,

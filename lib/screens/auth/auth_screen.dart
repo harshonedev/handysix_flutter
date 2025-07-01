@@ -7,6 +7,7 @@ import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/routes/app_router.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/providers/auth_provider.dart';
+import 'package:hand_cricket/widgets/background.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -68,84 +69,137 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       });
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: Stack(
-        children: [
-          Container(
-            alignment: Alignment.center,
-            child: SvgPicture.asset(
-              'assets/images/cricket_ground.svg',
+    return Background(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Column(
+          children: [
+            // Hero section at the top
+            _buildHeroSection(),
 
-              width: MediaQuery.sizeOf(context).width * 0.9,
-              colorFilter: ColorFilter.mode(
-                AppTheme.backgroundColor.withOpacity(0.8),
-                BlendMode.srcATop,
-              ),
-            ),
-          ),
-
-          Consumer(
-            builder: (context, ref, _) {
-              final isLoading = ref.watch(
-                authProvider.select((state) => state is AuthLoading),
-              );
-              final authNotifier = ref.read(authProvider.notifier);
-              return SafeArea(
+            // Add buttons section below hero
+            Flexible(
+              child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      SvgPicture.asset(
-                        'assets/images/app_logo.svg',
-                        height: 80,
-                        width: 160,
-                      ),
-                      SizedBox(height: 18),
-                      Text(
-                        'A new way of playing cricket',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white.withAlpha(200),
-                          fontSize: 24,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const Spacer(flex: 1),
-
+                      Spacer(),
                       _buildAuthButton(
-                        text: 'Contnue with Google',
+                        text: 'Continue with Google',
                         iconPath: 'assets/images/google_logo.svg',
+                        authType: AuthType.google,
                         onPressed: () {
+                          final authNotifier = ref.read(authProvider.notifier);
+                          final isLoading =
+                              ref.read(authProvider) is AuthLoading;
                           if (!isLoading) {
-                            // Sign in with Google
                             authNotifier.signInWithGoogle();
                           }
                         },
                         color: AppTheme.redColor,
-                        isLoading: isLoading,
+                        isLoading:
+                            ref.watch(authProvider) is AuthLoading &&
+                            (ref.watch(authProvider) as AuthLoading).authType ==
+                                AuthType.google,
                       ),
                       SizedBox(height: 16),
-
                       _buildAuthButton(
-                        text: 'Contnue as Guest',
+                        text: 'Continue as Guest',
                         iconPath: 'assets/images/guest_icon.svg',
-                        onPressed:
-                            () =>
-                                !isLoading
-                                    ? authNotifier.signInAsGuest()
-                                    : null,
-                        color: AppTheme.blueColor,
-                        isLoading: isLoading,
+                        authType: AuthType.anonymous,
+                        onPressed: () {
+                          final authNotifier = ref.read(authProvider.notifier);
+                          final isLoading =
+                              ref.read(authProvider) is AuthLoading;
+                          if (!isLoading) {
+                            authNotifier.signInAsGuest();
+                          }
+                        },
+                        color: AppTheme.purpleColor,
+                        isLoading:
+                            ref.watch(authProvider) is AuthLoading &&
+                            (ref.watch(authProvider) as AuthLoading).authType ==
+                                AuthType.anonymous,
                       ),
                     ],
                   ),
                 ),
-              );
-            },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroSection() {
+    return Container(
+      width: double.maxFinite,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryColor, AppTheme.blueColor],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF3278C8),
+            offset: Offset(0, 8), // changes position of shadow
           ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 32.0),
+            child: Image.asset(
+              'assets/images/app_logo.png',
+              width: 100,
+              fit: BoxFit.fitWidth,
+            ),
+          ),
+          Opacity(
+            opacity: 0.4,
+            child: Image.asset(
+              'assets/images/stadium_hero.png',
+              height: 164,
+              width: double.maxFinite,
+              fit: BoxFit.fill,
+            ),
+          ),
+
+          SizedBox(height: 48),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+            children: [
+              SizedBox(width: 24),
+              Expanded(
+                child: Text(
+                  'A New Way of Playing Cricket',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
+              Image.asset(
+                'assets/hand_gestures/2_right.png',
+                height: 60,
+                fit: BoxFit.fitHeight,
+              ),
+            ],
+          ),
+          SizedBox(height: 48),
         ],
       ),
     );
@@ -157,56 +211,52 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     required VoidCallback onPressed,
     required Color color,
     required bool isLoading,
+    required AuthType authType,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black, width: 2),
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: color,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-        child: InkWell(
-          onTap: onPressed,
-          child:
-              isLoading
-                  ? Center(
-                    child: SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white.withOpacity(0.8),
-                        strokeWidth: 4,
-                        strokeCap: StrokeCap.round,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child:
+            isLoading
+                ? Center(
+                  child: SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                      strokeCap: StrokeCap.round,
+                    ),
+                  ),
+                )
+                : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      iconPath,
+                      height: authType == AuthType.anonymous ? 24 : 20,
+                      width: authType == AuthType.anonymous ? 24 : 20,
+                      colorFilter: ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcATop,
                       ),
                     ),
-                  )
-                  : Row(
-                    children: [
-                      const Spacer(flex: 1),
-                      SvgPicture.asset(
-                        iconPath,
-                        height: 24,
-                        width: 24,
-                        colorFilter: ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcATop,
-                        ),
+                    SizedBox(width: 16),
+                    Text(
+                      text,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
                       ),
-                      //const Spacer(flex: 1),
-                      SizedBox(width: 12),
-                      Text(
-                        text,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(flex: 1),
-                    ],
-                  ),
-        ),
+                    ),
+                  ],
+                ),
       ),
     );
   }
