@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
@@ -54,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   //line
                   Container(
                     height: 1,
-                    width: 50, 
+                    width: 50,
 
                     decoration: BoxDecoration(
                       color: Colors.white24,

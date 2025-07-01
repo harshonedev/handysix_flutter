@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class GameBackground extends StatelessWidget {
-  const GameBackground({super.key});
+  final Widget child;
+  const GameBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +57,9 @@ class GameBackground extends StatelessWidget {
               ),
             ),
           ),
+
+          // Main content
+          child,
         ],
       ),
     );
