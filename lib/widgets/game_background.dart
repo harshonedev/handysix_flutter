@@ -51,7 +51,7 @@ class GameBackground extends StatelessWidget {
             child: Opacity(
               opacity: 0.8,
               child: Image.asset(
-                'assets/images/stadium.png',
+                'assets/images/stadium_600.png',
                 fit: BoxFit.fitHeight,
                 width: double.maxFinite,
               ),

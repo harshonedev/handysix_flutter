@@ -248,6 +248,8 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
   }
 }
 
+
+// PracticeGameState
 abstract class PracticeGameState extends Equatable {
   @override
   List<Object?> get props => [];

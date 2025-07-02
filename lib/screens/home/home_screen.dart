@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
@@ -42,7 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     'dart-board', // Replace with your dartboard asset if available
                 title: 'Train Your Skills',
                 subtitle: 'Play With AI',
-                onTap: () {},
+                onTap: () {
+                  context.push('/practice-game');
+                },
               ),
 
               const SizedBox(height: 60),
