@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hand_cricket/core/contstants/app_constants.dart';
+import 'package:hand_cricket/app/providers.dart';
+import 'package:hand_cricket/controllers/practice_game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/player.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
+import 'package:lottie/lottie.dart';
 
 class PracticeGameScreen extends ConsumerStatefulWidget {
   const PracticeGameScreen({super.key});
@@ -28,6 +30,10 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
 
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(practiceGameController.notifier).startGame();
+    });
   }
 
   void _playAnimation() {
@@ -45,47 +51,146 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
   Widget build(BuildContext context) {
     return GameBackground(
       child: SafeArea(
+        child: Consumer(
+          builder: (context, ref, widget) {
+            final state = ref.watch(practiceGameController);
+
+            // Listen for move status changes to trigger animation
+            ref.listen<PracticeGameState>(practiceGameController, (
+              previous,
+              current,
+            ) {
+              if (current is PracticeGameStarted &&
+                  current.moveStatus == MoveStatus.progress) {
+                _playAnimation();
+              }
+            });
+
+            if (state is PracticeGameStarted) {
+              return Column(
+                children: [
+                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildPlayerCard(state.player),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildPlayerCard(state.computer),
+                    ),
+                  ),
+
+                  if (state.phase == GamePhase.toss) ...[
+                    _buildStartInnigsLayout(
+                      state.isBattingFirst,
+                      state.mainTimer,
+                      state.phase,
+                    ),
+                  ] else if (state.phase == GamePhase.result) ...[
+                    _buildResultLayout(state),
+                  ] else ...[
+                    const Spacer(),
+                    _buildHandGestures(
+                      state.moveChoice,
+                      state.computerChoice,
+                      state.moveStatus,
+                    ),
+                    const Spacer(),
+                    _buildTimerAndMessage(state),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: _buildMovesController(state),
+                    ),
+                  ],
+                ],
+              );
+            } else if (state is PracticeGameError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.error,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.read(practiceGameController.notifier).resetGame();
+                      },
+                      child: Text('Try Again'),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStartInnigsLayout(
+    bool isBattingFirst,
+    int timer,
+    GamePhase phase,
+  ) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.max,
           children: [
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: _buildPlayerCard(
-                  Player(
-                    name: 'Guest',
-                    avatarUrl: AppConstants.avatarUrl,
-                    type: PlayerType.player1,
-                    isBatting: false,
-                    ballsFaced: 3,
-                  ),
-                ),
+            SizedBox(
+              height: 300,
+              width: 300,
+              child: Lottie.asset(
+                'assets/animation/bat_anim.json',
+                width: 120,
+                height: 120,
+                repeat: true,
+                fit: BoxFit.contain,
               ),
             ),
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: _buildPlayerCard(
-                  Player(
-                    name: 'Computer',
-                    avatarUrl: AppConstants.computerAvatarUrl,
-                    type: PlayerType.computer,
-                    isBatting: true,
-                    score: 42,
-                  ),
-                ),
+            Text(
+              isBattingFirst
+                  ? 'You\'re batting first'
+                  : 'You\'re bowling first',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: Colors.white,
               ),
             ),
-            const Spacer(),
-            _buildHandGestures(),
-            const Spacer(),
-            _buildTimerAndMessage(),
+
             const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: _buildMovesController(),
+
+            // Timer - Now properly shows the countdown
+            Text(
+              timer.toString(),
+              style: GoogleFonts.montserrat(
+                fontSize: 54,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70,
+              ),
             ),
           ],
         ),
@@ -93,8 +198,124 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildHandGestures() {
+  Widget _buildResultLayout(PracticeGameStarted state) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              state.player.score > state.computer.score
+                  ? Icons.emoji_events
+                  : state.computer.score > state.player.score
+                  ? Icons.sentiment_dissatisfied
+                  : Icons.handshake,
+              size: 80,
+              color:
+                  state.player.score > state.computer.score
+                      ? Colors.yellow
+                      : Colors.white,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              state.message,
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      'Your Score',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      state.player.score.toString(),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Text(
+                      'Computer Score',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      state.computer.score.toString(),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(practiceGameController.notifier).resetGame();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              child: Text(
+                'Play Again',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHandGestures(int move, int opponentMove, MoveStatus moveStatus) {
     final handWidth = MediaQuery.of(context).size.width * 0.4;
+
+    // Show default closed fist (0) when no move is selected or during next phase
+    final playerMove =
+        (moveStatus == MoveStatus.progress && move > 0) ? move : 0;
+    final computerMove =
+        (moveStatus == MoveStatus.progress && opponentMove > 0)
+            ? opponentMove
+            : 0;
+
     return SizedBox(
       height: 200,
       width: MediaQuery.of(context).size.width,
@@ -102,7 +323,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
         clipBehavior: Clip.hardEdge,
         fit: StackFit.expand,
         children: [
-          // LEFT HAND
+          // LEFT HAND (Player)
           AnimatedBuilder(
             animation: _animation,
             builder: (context, child) {
@@ -114,15 +335,23 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 width: handWidth,
                 child: Center(
                   child: Image.asset(
-                    'assets/hand_gestures/1_left.png',
+                    'assets/hand_gestures/${playerMove}_left.png',
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        color: Colors.grey,
+                        child: Icon(Icons.error, color: Colors.white),
+                      );
+                    },
                   ),
                 ),
               );
             },
           ),
 
-          // RIGHT HAND
+          // RIGHT HAND (Computer)
           AnimatedBuilder(
             animation: _animation,
             builder: (context, child) {
@@ -134,8 +363,16 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 width: handWidth,
                 child: Center(
                   child: Image.asset(
-                    'assets/hand_gestures/1_right.png',
+                    'assets/hand_gestures/${computerMove}_right.png',
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        color: Colors.grey,
+                        child: Icon(Icons.error, color: Colors.white),
+                      );
+                    },
                   ),
                 ),
               );
@@ -146,7 +383,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildTimerAndMessage() {
+  Widget _buildTimerAndMessage(PracticeGameStarted state) {
     return Column(
       children: [
         Row(
@@ -177,7 +414,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 children: [
                   Positioned.fill(
                     child: CircularProgressIndicator(
-                      value: 0.75, // Example value
+                      value: state.mainTimer > 0 ? state.mainTimer / 4.0 : 0,
                       strokeWidth: 8,
                       strokeCap: StrokeCap.round,
                       backgroundColor: Colors.grey.withAlpha(100),
@@ -195,7 +432,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                       shape: BoxShape.circle,
                     ),
                     child: Text(
-                      '3',
+                      state.mainTimer.toString(),
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -233,7 +470,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              'What a shot!',
+              state.message,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 14,
@@ -270,15 +507,23 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
               children: [
                 if (player.type == PlayerType.player1) ...[
                   Container(
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: Image.network(
-                      player.avatarUrl,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
+                    child: ClipOval(
+                      child: Image.network(
+                        player.avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey,
+                            child: Icon(Icons.person, color: Colors.white),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   Padding(
@@ -297,13 +542,11 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                             maxLines: 1,
                             style: GoogleFonts.poppins(
                               fontSize: 12,
-
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 2),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -314,6 +557,15 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                                   : 'assets/images/ball.png',
                               width: 14,
                               height: 14,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  player.isBatting
+                                      ? Icons.sports_cricket
+                                      : Icons.sports_baseball,
+                                  size: 14,
+                                  color: AppTheme.primaryColor,
+                                );
+                              },
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -334,10 +586,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color:
-                          player.type == PlayerType.player1
-                              ? AppTheme.blueColor.withAlpha(100)
-                              : AppTheme.redColor.withAlpha(100),
+                      color: AppTheme.blueColor.withAlpha(200),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -356,10 +605,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color:
-                          player.type == PlayerType.player1
-                              ? AppTheme.blueColor.withAlpha(100)
-                              : AppTheme.redColor.withAlpha(100),
+                      color: AppTheme.redColor.withAlpha(200),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -373,7 +619,6 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 4),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -394,7 +639,6 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 2),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -405,6 +649,18 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                                   : 'assets/images/ball.png',
                               width: 14,
                               height: 14,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  player.isBatting
+                                      ? Icons.sports_cricket
+                                      : Icons.sports_baseball,
+                                  size: 14,
+                                  color:
+                                      player.isBatting
+                                          ? AppTheme.redColor
+                                          : AppTheme.primaryColor,
+                                );
+                              },
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -412,7 +668,10 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                               style: GoogleFonts.poppins(
                                 fontSize: 8,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.primaryColor,
+                                color:
+                                    player.isBatting
+                                        ? AppTheme.redColor
+                                        : AppTheme.primaryColor,
                               ),
                             ),
                           ],
@@ -421,15 +680,23 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     ),
                   ),
                   Container(
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: Image.network(
-                      player.avatarUrl,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
+                    child: ClipOval(
+                      child: Image.network(
+                        player.avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey,
+                            child: Icon(Icons.computer, color: Colors.white),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -438,7 +705,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
           ),
         ),
 
-        // balls set
+        // balls indicator
         const SizedBox(height: 8),
         SizedBox(
           width: MediaQuery.of(context).size.width * 0.4,
@@ -454,9 +721,9 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   decoration: BoxDecoration(
                     color:
-                        6 - player.ballsFaced > index
-                            ? AppTheme.redColor.withAlpha(200)
-                            : Colors.blueGrey.withAlpha(150),
+                        index < player.ballsFaced
+                            ? Colors.blueGrey.withAlpha(150)
+                            : AppTheme.redColor.withAlpha(200),
                     border: Border.all(color: Colors.white, width: 1),
                     shape: BoxShape.circle,
                   ),
@@ -469,9 +736,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildMovesController() {
-    // Placeholder for moves controller
-    // 6 buttons 1 to 6 in a grid view 3x2
+  Widget _buildMovesController(PracticeGameStarted state) {
     return Container(
       padding: const EdgeInsets.all(4.0),
       child: GridView.builder(
@@ -485,15 +750,27 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
         ),
         itemCount: 6,
         itemBuilder: (context, index) {
+          final moveNumber = index + 1;
+          final isSelected = state.moveChoice == moveNumber;
+          final isDisabled = state.moveStatus == MoveStatus.progress;
+
           return GestureDetector(
-            onTap: () {
-              // Handle move selection
-              _playAnimation();
-              // You can add logic to handle the selected move here
-            },
+            onTap:
+                isDisabled
+                    ? null
+                    : () {
+                      ref
+                          .read(practiceGameController.notifier)
+                          .chooseMove(moveNumber);
+                    },
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color:
+                    isSelected
+                        ? Colors.yellow
+                        : isDisabled
+                        ? Colors.grey.withAlpha(100)
+                        : Colors.white,
                 borderRadius: const BorderRadius.all(Radius.circular(16)),
                 boxShadow: [
                   BoxShadow(
@@ -504,11 +781,16 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
               ),
               child: Center(
                 child: Text(
-                  '${index + 1}',
+                  moveNumber.toString(),
                   style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
-                    color: Colors.black87,
+                    color:
+                        isSelected
+                            ? Colors.black87
+                            : isDisabled
+                            ? Colors.grey
+                            : Colors.black87,
                   ),
                 ),
               ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:equatable/equatable.dart';
@@ -8,19 +9,28 @@ import 'package:hand_cricket/services/auth_service.dart';
 
 class PracticeGameController extends StateNotifier<PracticeGameState> {
   final AuthService authService;
+  Timer? _gameTimer;
+  Timer? _moveTimer;
+
   PracticeGameController({required this.authService})
     : super(PracticeGameInitial());
 
-  // Add methods to handle game logic, state updates, etc.
+  @override
+  void dispose() {
+    _gameTimer?.cancel();
+    _moveTimer?.cancel();
+    super.dispose();
+  }
+
   void startGame() async {
-    // get current user from auth service
+    // Get current user from auth service
     final user = authService.getCurrentUser();
     if (user == null) {
-      state = PracticeGameErorr('User not authenticated');
+      state = PracticeGameError('User not authenticated');
       return;
     }
 
-    // do toss
+    // Do toss
     final toss =
         Random().nextBool(); // true for batting first, false for bowling first
 
@@ -34,8 +44,9 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       name: 'Computer',
       avatarUrl: AppConstants.computerAvatarUrl,
       type: PlayerType.computer,
-      isBatting: toss,
+      isBatting: !toss, // Computer bats opposite to player
     );
+
     state = PracticeGameStarted(
       phase: GamePhase.toss,
       player: player,
@@ -44,210 +55,352 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       message: toss ? 'You will bat first' : 'You will bowl first.',
       mainTimer: 3,
       moveChoice: 0,
+      computerChoice: 0,
+      moveStatus: MoveStatus.start,
     );
 
-    // Simulate the innings
-    while (state is PracticeGameStarted) {
-      final currentState = state as PracticeGameStarted;
+    // Start toss countdown
+    _startTossCountdown();
+  }
 
-      // check the balls faced by player and computer
-      if (currentState.player.isBatting && currentState.player.ballsFaced <= 6) {
-        // player is batting he face 6 balls
-        if (currentState.phase == GamePhase.innings1) {
-          state = currentState.copyWith(
-            phase: GamePhase.innings2,
-            player: currentState.player.copyWith(isBatting: false),
-            computer: currentState.computer.copyWith(isBatting: true),
-            message: 'Now, it\'s your turn to bowl.',
-          );
-          await Future.delayed(Duration(seconds: 1));
+  void _startTossCountdown() {
+    if (state is! PracticeGameStarted) return;
 
-          // break this itteration
-          continue;
-        } else {
-          // innings 2 -> game over
-          state = currentState.copyWith(
-            phase: GamePhase.result,
-            message: 'Game Over!',
-          );
-          await Future.delayed(Duration(seconds: 1));
-          break; // Exit the loop
-        }
+    final currentState = state as PracticeGameStarted;
+    int countdown = 3;
+
+    _gameTimer?.cancel();
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (state is! PracticeGameStarted) {
+        timer.cancel();
+        return;
       }
 
-      if (currentState.computer.isBatting &&
-          currentState.computer.ballsFaced <= 6) {
-        // computer is batting he face 6 balls
-        if (currentState.phase == GamePhase.innings1) {
-          state = currentState.copyWith(
-            phase: GamePhase.result,
-            computer: currentState.computer.copyWith(isBatting: false),
-            player: currentState.player.copyWith(isBatting: true),
-            message: 'Now, it\'s your turn to bat.',
-          );
-          await Future.delayed(Duration(seconds: 1));
+      countdown--;
 
-          // break this itteration
-          continue;
-        } else {
-          // innings 1 -> game over
-          state = currentState.copyWith(
-            phase: GamePhase.result,
-            message: 'Game Over!',
-          );
-          await Future.delayed(Duration(seconds: 1));
-          break; // Exit the loop
-        }
+      if (countdown <= 0) {
+        timer.cancel();
+        // Move to first innings
+        _startInnings(GamePhase.innings1);
+      } else {
+        state = currentState.copyWith(mainTimer: countdown);
       }
+    });
+  }
 
-      // timer
-      for (int i = 0; i <= 3; i++) {
-        if (state is PracticeGameStarted) {
-          state = currentState.copyWith(
-            mainTimer: 3 - i,
-            message:
-                currentState.phase == GamePhase.innings1 ||
-                        currentState.phase == GamePhase.innings2
-                    ? 'Choose a number.'
-                    : currentState.message,
-          );
-          await Future.delayed(Duration(seconds: 1));
-        }
-      }
-      // After toss, start the first innings
-      if (currentState.phase == GamePhase.toss) {
-        state = currentState.copyWith(
-          phase: GamePhase.innings1,
-          message:
-              currentState.isBattingFirst
-                  ? 'You are batting first.'
-                  : 'You are bowling first.',
-          mainTimer: 3, // Reset timer for innings
-        );
-      }
+  void _startInnings(GamePhase phase) {
+    if (state is! PracticeGameStarted) return;
 
-      // if the game is in innings1 or innings2, validate the move choice
-      if (currentState.phase == GamePhase.innings1 ||
-          currentState.phase == GamePhase.innings2) {
-        final moveChoice = currentState.moveChoice;
-        final computerMoveChoice =
-            Random().nextInt(6) + 1; // Simulate computer's random move choice
-        if (moveChoice == computerMoveChoice) {
-          // If both player and computer choose the same number, it's an out
+    final currentState = state as PracticeGameStarted;
 
-          if (currentState.player.isBatting) {
-            // Player is out
-            final updatedPlayer = currentState.player.copyWith(
-              isOut: true,
-              isBatting: false,
-              ballsFaced: currentState.player.ballsFaced + 1,
-            );
-            final updatedComputer = currentState.computer.copyWith(
-              isBatting:
-                  currentState.phase == GamePhase.innings1
-                      ? true
-                      : false, // Computer bats in innings1, bowls in innings2
-            );
-            state = currentState.copyWith(
-              player: updatedPlayer,
-              computer: updatedComputer,
-              message: 'Oh no! You are out.',
-            );
-            await Future.delayed(Duration(seconds: 1));
-          } else {
-            // Computer is out
-            final updatedComputer = currentState.computer.copyWith(
-              isOut: true,
-              isBatting: false,
-              ballsFaced: currentState.computer.ballsFaced + 1,
-            );
-            final updatedPlayer = currentState.player.copyWith(
-              isBatting:
-                  currentState.phase == GamePhase.innings1 ? true : false,
-            );
-            state = currentState.copyWith(
-              computer: updatedComputer,
-              player: updatedPlayer,
-              message: 'Yay! Bowled\'em out.',
-            );
-            await Future.delayed(Duration(seconds: 1));
-          }
+    String message;
+    Player updatedPlayer = currentState.player;
+    Player updatedComputer = currentState.computer;
 
-          // check if innings1 -> innings2 else inings2 -> result
-          if (currentState.phase == GamePhase.innings1) {
-            state = currentState.copyWith(
-              phase: GamePhase.innings2,
-              message:
-                  currentState.player.isBatting
-                      ? 'Now, it\'s turn to bowl.'
-                      : 'Now, it\'s your turn to bat.',
-              mainTimer: 3,
-            );
-            await Future.delayed(Duration(seconds: 1));
-          } else {
-            // If it's innings2, then the game is over
-            state = currentState.copyWith(
-              phase: GamePhase.result,
-              message: 'Game Over!',
-            );
-            await Future.delayed(Duration(seconds: 1));
-            break; // Exit the loop
-          }
-        } else {
-          // If the player and computer choose different numbers, update scores
-          if (currentState.player.isBatting) {
-            // Player is batting
-            final updatedPlayer = currentState.player.copyWith(
-              score: currentState.player.score + moveChoice,
-              ballsFaced: currentState.player.ballsFaced + 1,
-            );
-            state = currentState.copyWith(
-              player: updatedPlayer,
-              message: _showMessaageByScore(moveChoice),
-            );
-            await Future.delayed(Duration(seconds: 1));
-          } else {
-            // Computer is batting
-            final updatedComputer = currentState.computer.copyWith(
-              score: currentState.computer.score + computerMoveChoice,
-              ballsFaced: currentState.computer.ballsFaced + 1,
-            );
-            state = currentState.copyWith(
-              computer: updatedComputer,
-              message: 'Oh No! Computer scored $computerMoveChoice runs}',
-            );
-            await Future.delayed(Duration(seconds: 1));
-          }
-        }
-      }
+    if (phase == GamePhase.innings1) {
+      message =
+          currentState.isBattingFirst
+              ? 'You are batting first. Choose a number!'
+              : 'You are bowling first. Choose a number!';
+    } else {
+      // Switch batting/bowling for innings 2 and reset stats
+      updatedPlayer = currentState.player.copyWith(
+        isBatting: !currentState.player.isBatting,
+        isOut: false,
+        ballsFaced: 0,
+      );
+      updatedComputer = currentState.computer.copyWith(
+        isBatting: !currentState.computer.isBatting,
+        isOut: false,
+        ballsFaced: 0,
+      );
+
+      final target =
+          currentState.isBattingFirst
+              ? currentState.player.score + 1
+              : currentState.computer.score + 1;
+
+      message =
+          updatedPlayer.isBatting
+              ? 'Now it\'s your turn to bat! Target: $target'
+              : 'Now it\'s your turn to bowl! Defend: $target';
     }
+
+    state = currentState.copyWith(
+      phase: phase,
+      player: updatedPlayer,
+      computer: updatedComputer,
+      message: message,
+      mainTimer: 3,
+      moveChoice: 0,
+      computerChoice: 0,
+      moveStatus: MoveStatus.next,
+    );
+
+    _startMoveTimer();
+  }
+
+  void _startMoveTimer() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+    int countdown = 3;
+
+    _moveTimer?.cancel();
+    _moveTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (state is! PracticeGameStarted) {
+        timer.cancel();
+        return;
+      }
+      countdown--;
+
+      if (countdown < 0) {
+        timer.cancel();
+        // Auto-select 0 move if player didn't choose
+         _processMoves(currentState.moveChoice);
+      } else {
+        state = currentState.copyWith(mainTimer: countdown);
+      }
+    });
   }
 
   void chooseMove(int moveChoice) {
-    if (state is PracticeGameStarted) {
-      final currentState = state as PracticeGameStarted;
-      // Update the move choice
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    // Only allow move selection during innings and when not in progress
+    if ((currentState.phase == GamePhase.innings1 ||
+            currentState.phase == GamePhase.innings2) &&
+        currentState.moveStatus != MoveStatus.progress) {
       state = currentState.copyWith(moveChoice: moveChoice);
+
+      // If timer is running and move is selected, process immediately
+      if (currentState.mainTimer > 0) {
+        _moveTimer?.cancel();
+        _processMoves(moveChoice);
+      }
     }
   }
 
-  String _showMessaageByScore(int score) {
-    if (score < 3 && score > 1) {
-      return 'Nice Play! $score runs';
-    } else if (score == 4) {
-      return 'What a shot! $score runs';
-    } else if (score == 5) {
-      return 'Great Shot! $score runs';
-    } else if (score == 6) {
-      return "It's a six!";
-    } else if (score == 1) {
-      return 'Nice Play! $score run';
+  void _processMoves(int playerMove) {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+    final computerMove = Random().nextInt(6) + 1;
+
+    // Set moves and progress status
+    state = currentState.copyWith(
+      moveChoice: playerMove,
+      computerChoice: computerMove,
+      moveStatus: MoveStatus.progress,
+      mainTimer: 0,
+    );
+
+    // Wait a moment to show the moves, then process result
+    Timer(Duration(seconds: 1), () {
+      _processResult(playerMove, computerMove);
+    });
+  }
+
+  void _processResult(int playerMove, int computerMove) {
+    if (state is! PracticeGameStarted) return;
+
+    if (playerMove == computerMove) {
+      // OUT!
+      _handleOut();
     } else {
-      return 'No runs scored';
+      // Runs scored
+      _handleRuns(playerMove, computerMove);
     }
+  }
+
+  void _handleOut() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    if (currentState.player.isBatting) {
+      // Player is out
+      final updatedPlayer = currentState.player.copyWith(
+        isOut: true,
+        ballsFaced: currentState.player.ballsFaced + 1,
+      );
+
+      state = currentState.copyWith(
+        player: updatedPlayer,
+        message: 'Oh no! You are out!',
+      );
+    } else {
+      // Computer is out
+      final updatedComputer = currentState.computer.copyWith(
+        isOut: true,
+        ballsFaced: currentState.computer.ballsFaced + 1,
+      );
+
+      state = currentState.copyWith(
+        computer: updatedComputer,
+        message: 'Yay! Bowled them out!',
+      );
+    }
+
+    // Move to next phase after delay
+    Timer(Duration(seconds: 1), () {
+      _checkInningsEnd();
+    });
+  }
+
+  void _handleRuns(int playerMove, int computerMove) {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    if (currentState.player.isBatting) {
+      // Player is batting
+      final updatedPlayer = currentState.player.copyWith(
+        score: currentState.player.score + playerMove,
+        ballsFaced: currentState.player.ballsFaced + 1,
+      );
+
+      state = currentState.copyWith(
+        player: updatedPlayer,
+        message: _getScoreMessage(playerMove),
+      );
+    } else {
+      // Computer is batting
+      final updatedComputer = currentState.computer.copyWith(
+        score: currentState.computer.score + computerMove,
+        ballsFaced: currentState.computer.ballsFaced + 1,
+      );
+
+      state = currentState.copyWith(
+        computer: updatedComputer,
+        message: 'Computer scored $computerMove runs!',
+      );
+    }
+
+    // Check for chase completion in innings 2
+    if (currentState.phase == GamePhase.innings2) {
+      final currentBatter =
+          currentState.player.isBatting
+              ? currentState.player
+              : currentState.computer;
+      final firstInningsScore =
+          currentState.player.isBatting
+              ? currentState.computer.score
+              : currentState.player.score;
+
+      if (currentBatter.score > firstInningsScore) {
+        // Chase completed
+        _endGame();
+        return;
+      }
+    }
+
+    // Continue game after delay
+    Timer(Duration(seconds: 1), () {
+      _checkInningsEnd();
+    });
+  }
+
+  void _checkInningsEnd() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    // Check if current batsman is out or has faced 6 balls
+    bool inningsEnded = false;
+
+    if (currentState.player.isBatting) {
+      inningsEnded =
+          currentState.player.isOut || currentState.player.ballsFaced >= 6;
+    } else {
+      inningsEnded =
+          currentState.computer.isOut || currentState.computer.ballsFaced >= 6;
+    }
+
+    if (inningsEnded) {
+      if (currentState.phase == GamePhase.innings1) {
+        // Move to innings 2
+        _startInnings(GamePhase.innings2);
+      } else {
+        // Game over
+        _endGame();
+      }
+    } else {
+      // Continue current innings
+      _continueInnings();
+    }
+  }
+
+  void _continueInnings() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    state = currentState.copyWith(
+      message:
+          currentState.player.isBatting
+              ? 'Choose your next move!'
+              : 'Stop the computer!',
+      mainTimer: 3,
+      moveChoice: 0,
+      computerChoice: 0,
+      moveStatus: MoveStatus.next,
+    );
+
+    _startMoveTimer();
+  }
+
+  void _endGame() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    // Determine winner
+    String resultMessage;
+    if (currentState.player.score > currentState.computer.score) {
+      resultMessage =
+          'Congratulations! You won by ${currentState.player.score - currentState.computer.score} runs!';
+    } else if (currentState.computer.score > currentState.player.score) {
+      resultMessage =
+          'Computer wins by ${currentState.computer.score - currentState.player.score} runs!';
+    } else {
+      resultMessage = 'It\'s a tie! Great match!';
+    }
+
+    state = currentState.copyWith(
+      phase: GamePhase.result,
+      message: resultMessage,
+      moveStatus: MoveStatus.end,
+      mainTimer: 0,
+    );
+  }
+
+  String _getScoreMessage(int score) {
+    switch (score) {
+      case 1:
+        return 'Nice play! $score run';
+      case 2:
+      case 3:
+        return 'Nice play! $score runs';
+      case 4:
+        return 'What a shot! $score runs';
+      case 5:
+        return 'Great shot! $score runs';
+      case 6:
+        return 'It\'s a six! Amazing!';
+      default:
+        return 'No runs scored';
+    }
+  }
+
+  void resetGame() {
+    _gameTimer?.cancel();
+    _moveTimer?.cancel();
+    state = PracticeGameInitial();
   }
 }
-
 
 // PracticeGameState
 abstract class PracticeGameState extends Equatable {
@@ -265,6 +418,8 @@ class PracticeGameStarted extends PracticeGameState {
   final String message;
   final int mainTimer;
   final int moveChoice;
+  final int computerChoice;
+  final MoveStatus moveStatus;
 
   PracticeGameStarted({
     this.phase = GamePhase.toss,
@@ -274,6 +429,8 @@ class PracticeGameStarted extends PracticeGameState {
     this.message = '',
     this.mainTimer = 0,
     this.moveChoice = 0,
+    this.computerChoice = 0,
+    required this.moveStatus,
   });
 
   PracticeGameStarted copyWith({
@@ -284,6 +441,8 @@ class PracticeGameStarted extends PracticeGameState {
     String? message,
     int? mainTimer,
     int? moveChoice,
+    int? computerChoice,
+    MoveStatus? moveStatus,
   }) {
     return PracticeGameStarted(
       phase: phase ?? this.phase,
@@ -293,18 +452,37 @@ class PracticeGameStarted extends PracticeGameState {
       message: message ?? this.message,
       mainTimer: mainTimer ?? this.mainTimer,
       moveChoice: moveChoice ?? this.moveChoice,
+      computerChoice: computerChoice ?? this.computerChoice,
+      moveStatus: moveStatus ?? this.moveStatus,
     );
   }
-}
-
-
-class PracticeGameErorr extends PracticeGameState {
-  final String error;
-
-  PracticeGameErorr(this.error);
 
   @override
-  String toString() => 'PracticeGameErorr: $error';
+  List<Object?> get props => [
+    phase,
+    player,
+    computer,
+    isBattingFirst,
+    message,
+    mainTimer,
+    moveChoice,
+    computerChoice,
+    moveStatus,
+  ];
+}
+
+class PracticeGameError extends PracticeGameState {
+  final String error;
+
+  PracticeGameError(this.error);
+
+  @override
+  List<Object?> get props => [error];
+
+  @override
+  String toString() => 'PracticeGameError: $error';
 }
 
 enum GamePhase { toss, innings1, innings2, result }
+
+enum MoveStatus { next, progress, start, end }
