@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 
 class Background extends StatelessWidget {
- final Widget child;
+  final Widget child;
   const Background({super.key, required this.child});
 
   @override
@@ -16,6 +16,7 @@ class Background extends StatelessWidget {
         ),
       ),
       child: Stack(
+        fit: StackFit.expand,
         children: [
           Positioned(
             left: 4,
@@ -59,7 +60,7 @@ class Background extends StatelessWidget {
             ),
           ),
 
-          child
+          child,
         ],
       ),
     );

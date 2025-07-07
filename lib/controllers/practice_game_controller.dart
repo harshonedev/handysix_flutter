@@ -561,21 +561,31 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
 
     // Determine winner
     String resultMessage;
+    PlayerType? winner;
     if (currentState.player.score > currentState.computer.score) {
       resultMessage =
           'Congratulations! You won by ${currentState.player.score - currentState.computer.score} runs!';
+      winner = PlayerType.player1;
     } else if (currentState.computer.score > currentState.player.score) {
       resultMessage =
           'Computer wins by ${currentState.computer.score - currentState.player.score} runs!';
+      winner = PlayerType.computer;
     } else {
       resultMessage = 'It\'s a tie! Great match!';
     }
 
-    state = currentState.copyWith(
-      phase: GamePhase.result,
+    // state = currentState.copyWith(
+    //   phase: GamePhase.result,
+    //   message: resultMessage,
+    //   moveStatus: MoveStatus.end,
+    //   mainTimer: 0,
+    // );
+
+    state = PracticeGameResult(
+      player: currentState.player,
+      computer: currentState.computer,
       message: resultMessage,
-      moveStatus: MoveStatus.end,
-      mainTimer: 0,
+      winner: winner,
     );
   }
 
@@ -684,6 +694,20 @@ class PracticeGameStarted extends PracticeGameState {
     target,
     isPaused,
   ];
+}
+
+class PracticeGameResult extends PracticeGameState {
+  final Player player;
+  final Player computer;
+  final String message;
+  final PlayerType? winner;
+
+  PracticeGameResult({
+    required this.player,
+    required this.computer,
+    required this.message,
+    required this.winner,
+  });
 }
 
 class PracticeGameError extends PracticeGameState {

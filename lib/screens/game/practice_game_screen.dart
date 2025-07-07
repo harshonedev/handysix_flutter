@@ -6,10 +6,12 @@ import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/controllers/practice_game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/player.dart';
+import 'package:hand_cricket/screens/game/game_result_screen.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
 import 'package:lottie/lottie.dart';
 
 class PracticeGameScreen extends ConsumerStatefulWidget {
+  static const String route = '/game/practice';
   const PracticeGameScreen({super.key});
 
   @override
@@ -118,7 +120,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     ref.read(practiceGameController.notifier).exitGame();
                     context.pop();
                   },
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -154,6 +156,12 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
             builder: (context, ref, widget) {
               final state = ref.watch(practiceGameController);
 
+              if (state is PracticeGameResult) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  context.go(GameResultScreen.route);
+                });
+              }
+
               // Listen for move status changes to trigger animation
               ref.listen<PracticeGameState>(practiceGameController, (
                 previous,
@@ -188,8 +196,6 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     if (state.phase == GamePhase.toss ||
                         state.phase == GamePhase.startInnigs) ...[
                       _buildStartInnigsLayout(state.message, state.mainTimer),
-                    ] else if (state.phase == GamePhase.result) ...[
-                      _buildResultLayout(state),
                     ] else ...[
                       const Spacer(),
                       _buildHandGestures(
@@ -294,113 +300,6 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 fontSize: 54,
                 fontWeight: FontWeight.w600,
                 color: Colors.white70,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultLayout(PracticeGameStarted state) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              state.player.score > state.computer.score
-                  ? Icons.emoji_events
-                  : state.computer.score > state.player.score
-                  ? Icons.sentiment_dissatisfied
-                  : Icons.handshake,
-              size: 80,
-              color:
-                  state.player.score > state.computer.score
-                      ? Colors.yellow
-                      : Colors.white,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              state.message,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Column(
-                  children: [
-                    Text(
-                      'Your Score',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.player.score.toString(),
-                      style: GoogleFonts.montserrat(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    Text(
-                      'Computer Score',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.computer.score.toString(),
-                      style: GoogleFonts.montserrat(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(practiceGameController.notifier).resetGame();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              child: Text(
-                'Play Again',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
               ),
             ),
           ],

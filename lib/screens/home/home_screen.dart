@@ -3,9 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
+import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
 class HomeScreen extends StatefulWidget {
+  static const String route = '/home';
   const HomeScreen({super.key});
 
   @override
@@ -44,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'Train Your Skills',
                 subtitle: 'Play With AI',
                 onTap: () {
-                  context.push('/practice-game');
+                  context.push(PracticeGameScreen.route);
                 },
               ),
 
