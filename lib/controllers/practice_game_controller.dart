@@ -150,11 +150,14 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
     int countdown = _pausedMainTimer;
 
     GamePhase targetPhase =
-        _pausedPhase == GamePhase.startInnigs
-            ? (currentState.phase == GamePhase.innings1
-                ? GamePhase.innings1
-                : GamePhase.innings2)
-            : GamePhase.innings1;
+        currentState.isBattingFirst
+            ? (currentState.player.ballsFaced == 6 || currentState.player.isOut
+                ? GamePhase.innings2
+                : GamePhase.innings1)
+            : (currentState.computer.ballsFaced == 6 ||
+                    currentState.computer.isOut
+                ? GamePhase.innings2
+                : GamePhase.innings1);
 
     _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (state is! PracticeGameStarted) {
@@ -295,13 +298,9 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       // Switch batting/bowling for innings 2 and reset stats
       updatedPlayer = currentState.player.copyWith(
         isBatting: !currentState.player.isBatting,
-        isOut: false,
-        ballsFaced: 0,
       );
       updatedComputer = currentState.computer.copyWith(
         isBatting: !currentState.computer.isBatting,
-        isOut: false,
-        ballsFaced: 0,
       );
 
       target =
