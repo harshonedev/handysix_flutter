@@ -52,22 +52,47 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       player: player,
       computer: computer,
       isBattingFirst: toss,
-      message: toss ? 'You will bat first' : 'You will bowl first.',
-      mainTimer: 3,
+      message: toss ? 'You\'re batting first' : 'You\'re bowling first',
       moveChoice: 0,
       computerChoice: 0,
       moveStatus: MoveStatus.start,
     );
 
-    // Start toss countdown
-    _startTossCountdown();
+    // Start innigs countdown
+    _startInningsCountdown(GamePhase.innings1);
   }
 
-  void _startTossCountdown() {
+  void _startInningsCountdown(GamePhase phase) {
     if (state is! PracticeGameStarted) return;
 
     final currentState = state as PracticeGameStarted;
     int countdown = 3;
+    int? target;
+    String message;
+
+    if (phase == GamePhase.innings2) {
+      target =
+          currentState.isBattingFirst
+              ? currentState.player.score + 1
+              : currentState.computer.score + 1;
+
+      message =
+          currentState.isBattingFirst
+              ? 'Now it\'s your turn to bowl! Defend $target'
+              : 'Now it\'s your turn to bat! Target $target';
+    } else {
+      message =
+          currentState.isBattingFirst
+              ? 'You\'re batting first'
+              : 'You\'re bowling first';
+    }
+
+    state = currentState.copyWith(
+      message: message,
+      target: target,
+      mainTimer: countdown,
+      phase: GamePhase.startInnigs,
+    );
 
     _gameTimer?.cancel();
     _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -78,12 +103,17 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
 
       countdown--;
 
-      if (countdown <= 0) {
+      if (countdown < 0) {
         timer.cancel();
-        // Move to first innings
-        _startInnings(GamePhase.innings1);
+        // Move to innings
+        _startInnings(phase);
       } else {
-        state = currentState.copyWith(mainTimer: countdown);
+        state = currentState.copyWith(
+          mainTimer: countdown,
+          phase: GamePhase.startInnigs,
+          message: message,
+          target: target,
+        );
       }
     });
   }
@@ -93,15 +123,11 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
 
     final currentState = state as PracticeGameStarted;
 
-    String message;
+    int? target;
     Player updatedPlayer = currentState.player;
     Player updatedComputer = currentState.computer;
 
     if (phase == GamePhase.innings1) {
-      message =
-          currentState.isBattingFirst
-              ? 'You are batting first. Choose a number!'
-              : 'You are bowling first. Choose a number!';
     } else {
       // Switch batting/bowling for innings 2 and reset stats
       updatedPlayer = currentState.player.copyWith(
@@ -115,25 +141,20 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
         ballsFaced: 0,
       );
 
-      final target =
+      target =
           currentState.isBattingFirst
               ? currentState.player.score + 1
               : currentState.computer.score + 1;
-
-      message =
-          updatedPlayer.isBatting
-              ? 'Now it\'s your turn to bat! Target: $target'
-              : 'Now it\'s your turn to bowl! Defend: $target';
     }
 
     state = currentState.copyWith(
       phase: phase,
       player: updatedPlayer,
       computer: updatedComputer,
-      message: message,
-      mainTimer: 3,
+      message: 'Choose a number!',
       moveChoice: 0,
       computerChoice: 0,
+      target: target,
       moveStatus: MoveStatus.next,
     );
 
@@ -144,7 +165,8 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
     if (state is! PracticeGameStarted) return;
 
     final currentState = state as PracticeGameStarted;
-    int countdown = 3;
+    int countdown = 5;
+    state = currentState.copyWith(mainTimer: countdown);
 
     _moveTimer?.cancel();
     _moveTimer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -157,9 +179,12 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       if (countdown < 0) {
         timer.cancel();
         // Auto-select 0 move if player didn't choose
-         _processMoves(currentState.moveChoice);
+        _processMoves(currentState.moveChoice);
       } else {
-        state = currentState.copyWith(mainTimer: countdown);
+        state = currentState.copyWith(
+          mainTimer: countdown,
+          moveStatus: MoveStatus.wait,
+        );
       }
     });
   }
@@ -197,10 +222,8 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       mainTimer: 0,
     );
 
-    // Wait a moment to show the moves, then process result
-    Timer(Duration(seconds: 1), () {
-      _processResult(playerMove, computerMove);
-    });
+    //process result
+    _processResult(playerMove, computerMove);
   }
 
   void _processResult(int playerMove, int computerMove) {
@@ -230,6 +253,7 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       state = currentState.copyWith(
         player: updatedPlayer,
         message: 'Oh no! You are out!',
+        moveStatus: MoveStatus.progressed,
       );
     } else {
       // Computer is out
@@ -241,11 +265,12 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       state = currentState.copyWith(
         computer: updatedComputer,
         message: 'Yay! Bowled them out!',
+        moveStatus: MoveStatus.progressed,
       );
     }
 
-    // Move to next phase after delay
-    Timer(Duration(seconds: 1), () {
+    // Continue game after delay
+    Timer(Duration(seconds: 2), () {
       _checkInningsEnd();
     });
   }
@@ -265,6 +290,7 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       state = currentState.copyWith(
         player: updatedPlayer,
         message: _getScoreMessage(playerMove),
+        moveStatus: MoveStatus.progressed,
       );
     } else {
       // Computer is batting
@@ -276,29 +302,34 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       state = currentState.copyWith(
         computer: updatedComputer,
         message: 'Computer scored $computerMove runs!',
+        moveStatus: MoveStatus.progressed,
       );
     }
 
     // Check for chase completion in innings 2
     if (currentState.phase == GamePhase.innings2) {
-      final currentBatter =
-          currentState.player.isBatting
-              ? currentState.player
-              : currentState.computer;
       final firstInningsScore =
           currentState.player.isBatting
               ? currentState.computer.score
               : currentState.player.score;
 
-      if (currentBatter.score > firstInningsScore) {
+      final currentScore =
+          currentState.player.isBatting
+              ? currentState.player.score + playerMove
+              : currentState.computer.score + computerMove;
+
+      if (currentScore > firstInningsScore) {
         // Chase completed
-        _endGame();
+        // Continue game after delay
+        Timer(Duration(seconds: 2), () {
+          _endGame();
+        });
         return;
       }
     }
 
     // Continue game after delay
-    Timer(Duration(seconds: 1), () {
+    Timer(Duration(seconds: 2), () {
       _checkInningsEnd();
     });
   }
@@ -321,8 +352,8 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
 
     if (inningsEnded) {
       if (currentState.phase == GamePhase.innings1) {
-        // Move to innings 2
-        _startInnings(GamePhase.innings2);
+        // start innings 2 countdown timer
+        _startInningsCountdown(GamePhase.innings2);
       } else {
         // Game over
         _endGame();
@@ -343,7 +374,6 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
           currentState.player.isBatting
               ? 'Choose your next move!'
               : 'Stop the computer!',
-      mainTimer: 3,
       moveChoice: 0,
       computerChoice: 0,
       moveStatus: MoveStatus.next,
@@ -420,6 +450,7 @@ class PracticeGameStarted extends PracticeGameState {
   final int moveChoice;
   final int computerChoice;
   final MoveStatus moveStatus;
+  final int? target;
 
   PracticeGameStarted({
     this.phase = GamePhase.toss,
@@ -430,6 +461,7 @@ class PracticeGameStarted extends PracticeGameState {
     this.mainTimer = 0,
     this.moveChoice = 0,
     this.computerChoice = 0,
+    this.target,
     required this.moveStatus,
   });
 
@@ -443,6 +475,7 @@ class PracticeGameStarted extends PracticeGameState {
     int? moveChoice,
     int? computerChoice,
     MoveStatus? moveStatus,
+    int? target,
   }) {
     return PracticeGameStarted(
       phase: phase ?? this.phase,
@@ -454,6 +487,7 @@ class PracticeGameStarted extends PracticeGameState {
       moveChoice: moveChoice ?? this.moveChoice,
       computerChoice: computerChoice ?? this.computerChoice,
       moveStatus: moveStatus ?? this.moveStatus,
+      target: target ?? this.target,
     );
   }
 
@@ -468,6 +502,7 @@ class PracticeGameStarted extends PracticeGameState {
     moveChoice,
     computerChoice,
     moveStatus,
+    target,
   ];
 }
 
@@ -483,6 +518,6 @@ class PracticeGameError extends PracticeGameState {
   String toString() => 'PracticeGameError: $error';
 }
 
-enum GamePhase { toss, innings1, innings2, result }
+enum GamePhase { toss, innings1, innings2, result, startInnigs }
 
-enum MoveStatus { next, progress, start, end }
+enum MoveStatus { next, wait, progress, progressed, start, end }

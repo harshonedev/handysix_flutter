@@ -61,7 +61,8 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
               current,
             ) {
               if (current is PracticeGameStarted &&
-                  current.moveStatus == MoveStatus.progress) {
+                  (current.moveStatus == MoveStatus.progress ||
+                      current.moveStatus == MoveStatus.next)) {
                 _playAnimation();
               }
             });
@@ -73,24 +74,21 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                   Align(
                     alignment: Alignment.topRight,
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: _buildPlayerCard(state.player),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildPlayerCard(state.computer),
                     ),
                   ),
                   Align(
                     alignment: Alignment.topLeft,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: _buildPlayerCard(state.computer),
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildPlayerCard(state.player),
                     ),
                   ),
 
-                  if (state.phase == GamePhase.toss) ...[
-                    _buildStartInnigsLayout(
-                      state.isBattingFirst,
-                      state.mainTimer,
-                      state.phase,
-                    ),
+                  if (state.phase == GamePhase.toss ||
+                      state.phase == GamePhase.startInnigs) ...[
+                    _buildStartInnigsLayout(state.message, state.mainTimer),
                   ] else if (state.phase == GamePhase.result) ...[
                     _buildResultLayout(state),
                   ] else ...[
@@ -147,11 +145,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildStartInnigsLayout(
-    bool isBattingFirst,
-    int timer,
-    GamePhase phase,
-  ) {
+  Widget _buildStartInnigsLayout(String message, int timer) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -170,14 +164,24 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 fit: BoxFit.contain,
               ),
             ),
-            Text(
-              isBattingFirst
-                  ? 'You\'re batting first'
-                  : 'You\'re bowling first',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w400,
-                color: Colors.white,
+            Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(100),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
 
@@ -309,12 +313,9 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     final handWidth = MediaQuery.of(context).size.width * 0.4;
 
     // Show default closed fist (0) when no move is selected or during next phase
-    final playerMove =
-        (moveStatus == MoveStatus.progress && move > 0) ? move : 0;
+    final playerMove = (moveStatus != MoveStatus.next && move > 0) ? move : 0;
     final computerMove =
-        (moveStatus == MoveStatus.progress && opponentMove > 0)
-            ? opponentMove
-            : 0;
+        (moveStatus != MoveStatus.next && opponentMove > 0) ? opponentMove : 0;
 
     return SizedBox(
       height: 200,
@@ -414,7 +415,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 children: [
                   Positioned.fill(
                     child: CircularProgressIndicator(
-                      value: state.mainTimer > 0 ? state.mainTimer / 4.0 : 0,
+                      value: state.mainTimer > 0 ? state.mainTimer / 6.0 : 0,
                       strokeWidth: 8,
                       strokeCap: StrokeCap.round,
                       backgroundColor: Colors.grey.withAlpha(100),
@@ -752,7 +753,9 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
         itemBuilder: (context, index) {
           final moveNumber = index + 1;
           final isSelected = state.moveChoice == moveNumber;
-          final isDisabled = state.moveStatus == MoveStatus.progress;
+          final isDisabled =
+              state.moveStatus == MoveStatus.progress ||
+              state.moveStatus == MoveStatus.progressed;
 
           return GestureDetector(
             onTap:
@@ -765,12 +768,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     },
             child: Container(
               decoration: BoxDecoration(
-                color:
-                    isSelected
-                        ? Colors.yellow
-                        : isDisabled
-                        ? Colors.grey.withAlpha(100)
-                        : Colors.white,
+                color: isSelected ? Colors.yellow : Colors.white,
                 borderRadius: const BorderRadius.all(Radius.circular(16)),
                 boxShadow: [
                   BoxShadow(
