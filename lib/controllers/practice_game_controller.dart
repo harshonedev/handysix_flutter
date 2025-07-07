@@ -12,6 +12,11 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
   Timer? _gameTimer;
   Timer? _moveTimer;
 
+  // Pause/Resume state variables
+  int _pausedMainTimer = 0;
+  GamePhase? _pausedPhase;
+  MoveStatus? _pausedMoveStatus;
+
   PracticeGameController({required this.authService})
     : super(PracticeGameInitial());
 
@@ -56,10 +61,162 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
       moveChoice: 0,
       computerChoice: 0,
       moveStatus: MoveStatus.start,
+      isPaused: false,
     );
 
     // Start innigs countdown
     _startInningsCountdown(GamePhase.innings1);
+  }
+
+  void pauseGame() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    // Don't pause if game is already paused, ended, or in result phase
+    if (currentState.isPaused ||
+        currentState.phase == GamePhase.result ||
+        currentState.moveStatus == MoveStatus.end) {
+      return;
+    }
+
+    _pausedMainTimer = currentState.mainTimer;
+    _pausedPhase = currentState.phase;
+    _pausedMoveStatus = currentState.moveStatus;
+
+    // Cancel any running timers
+    _gameTimer?.cancel();
+    _moveTimer?.cancel();
+
+    state = currentState.copyWith(
+      isPaused: true,
+      message: 'Game Paused',
+      moveStatus: MoveStatus.paused,
+    );
+  }
+
+  void resumeGame() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+
+    // Only resume if game is paused
+    if (!currentState.isPaused) return;
+
+    // Restore the game state
+    state = currentState.copyWith(
+      isPaused: false,
+      mainTimer: _pausedMainTimer,
+      phase: _pausedPhase ?? currentState.phase,
+      moveStatus: _pausedMoveStatus ?? currentState.moveStatus,
+      message: _getResumeMessage(),
+    );
+
+    // Resume appropriate timer based on the paused phase and status
+    if (_pausedPhase == GamePhase.startInnigs) {
+      _resumeInningsCountdown();
+    } else if ((_pausedPhase == GamePhase.innings1 ||
+            _pausedPhase == GamePhase.innings2) &&
+        (_pausedMoveStatus == MoveStatus.next ||
+            _pausedMoveStatus == MoveStatus.wait)) {
+      _resumeMoveTimer();
+    }
+
+    // Clear pause state
+    _pausedMainTimer = 0;
+    _pausedPhase = null;
+    _pausedMoveStatus = null;
+  }
+
+  String _getResumeMessage() {
+    if (_pausedPhase == GamePhase.startInnigs) {
+      return 'Game resumed! Get ready...';
+    } else if (_pausedPhase == GamePhase.innings1 ||
+        _pausedPhase == GamePhase.innings2) {
+      if (state is PracticeGameStarted) {
+        final currentState = state as PracticeGameStarted;
+        return currentState.player.isBatting
+            ? 'Game resumed! Choose your move!'
+            : 'Game resumed! Stop the computer!';
+      }
+    }
+    return 'Game resumed!';
+  }
+
+  void _resumeInningsCountdown() {
+    if (state is! PracticeGameStarted) return;
+
+    final currentState = state as PracticeGameStarted;
+    int countdown = _pausedMainTimer;
+
+    GamePhase targetPhase =
+        _pausedPhase == GamePhase.startInnigs
+            ? (currentState.phase == GamePhase.innings1
+                ? GamePhase.innings1
+                : GamePhase.innings2)
+            : GamePhase.innings1;
+
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (state is! PracticeGameStarted) {
+        timer.cancel();
+        return;
+      }
+
+      final current = state as PracticeGameStarted;
+      if (current.isPaused) {
+        timer.cancel();
+        return;
+      }
+
+      countdown--;
+
+      if (countdown < 0) {
+        timer.cancel();
+        _startInnings(targetPhase);
+      } else {
+        state = current.copyWith(mainTimer: countdown);
+      }
+    });
+  }
+
+  void exitGame() {
+    _gameTimer?.cancel();
+    _moveTimer?.cancel();
+    _pausedMainTimer = 0;
+    _pausedPhase = null;
+    _pausedMoveStatus = null;
+    state = PracticeGameInitial();
+  }
+
+  void _resumeMoveTimer() {
+    if (state is! PracticeGameStarted) return;
+
+    int countdown = _pausedMainTimer;
+
+    _moveTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (state is! PracticeGameStarted) {
+        timer.cancel();
+        return;
+      }
+
+      final current = state as PracticeGameStarted;
+      if (current.isPaused) {
+        timer.cancel();
+        return;
+      }
+
+      countdown--;
+
+      if (countdown < 0) {
+        timer.cancel();
+        _processMoves(current.moveChoice);
+      } else {
+        state = current.copyWith(
+          mainTimer: countdown,
+          moveStatus: MoveStatus.wait,
+        );
+      }
+    });
   }
 
   void _startInningsCountdown(GamePhase phase) {
@@ -101,6 +258,12 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
         return;
       }
 
+      final current = state as PracticeGameStarted;
+      if (current.isPaused) {
+        timer.cancel();
+        return;
+      }
+
       countdown--;
 
       if (countdown < 0) {
@@ -108,7 +271,7 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
         // Move to innings
         _startInnings(phase);
       } else {
-        state = currentState.copyWith(
+        state = current.copyWith(
           mainTimer: countdown,
           phase: GamePhase.startInnigs,
           message: message,
@@ -174,14 +337,21 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
         timer.cancel();
         return;
       }
+
+      final current = state as PracticeGameStarted;
+      if (current.isPaused) {
+        timer.cancel();
+        return;
+      }
+
       countdown--;
 
       if (countdown < 0) {
         timer.cancel();
         // Auto-select 0 move if player didn't choose
-        _processMoves(currentState.moveChoice);
+        _processMoves(current.moveChoice);
       } else {
-        state = currentState.copyWith(
+        state = current.copyWith(
           mainTimer: countdown,
           moveStatus: MoveStatus.wait,
         );
@@ -193,6 +363,9 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
     if (state is! PracticeGameStarted) return;
 
     final currentState = state as PracticeGameStarted;
+
+    // Don't allow move selection if game is paused
+    if (currentState.isPaused) return;
 
     // Only allow move selection during innings and when not in progress
     if ((currentState.phase == GamePhase.innings1 ||
@@ -428,6 +601,9 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
   void resetGame() {
     _gameTimer?.cancel();
     _moveTimer?.cancel();
+    _pausedMainTimer = 0;
+    _pausedPhase = null;
+    _pausedMoveStatus = null;
     state = PracticeGameInitial();
   }
 }
@@ -451,6 +627,7 @@ class PracticeGameStarted extends PracticeGameState {
   final int computerChoice;
   final MoveStatus moveStatus;
   final int? target;
+  final bool isPaused;
 
   PracticeGameStarted({
     this.phase = GamePhase.toss,
@@ -463,6 +640,7 @@ class PracticeGameStarted extends PracticeGameState {
     this.computerChoice = 0,
     this.target,
     required this.moveStatus,
+    this.isPaused = false,
   });
 
   PracticeGameStarted copyWith({
@@ -476,6 +654,7 @@ class PracticeGameStarted extends PracticeGameState {
     int? computerChoice,
     MoveStatus? moveStatus,
     int? target,
+    bool? isPaused,
   }) {
     return PracticeGameStarted(
       phase: phase ?? this.phase,
@@ -488,6 +667,7 @@ class PracticeGameStarted extends PracticeGameState {
       computerChoice: computerChoice ?? this.computerChoice,
       moveStatus: moveStatus ?? this.moveStatus,
       target: target ?? this.target,
+      isPaused: isPaused ?? this.isPaused,
     );
   }
 
@@ -503,6 +683,7 @@ class PracticeGameStarted extends PracticeGameState {
     computerChoice,
     moveStatus,
     target,
+    isPaused,
   ];
 }
 
@@ -520,4 +701,4 @@ class PracticeGameError extends PracticeGameState {
 
 enum GamePhase { toss, innings1, innings2, result, startInnigs }
 
-enum MoveStatus { next, wait, progress, progressed, start, end }
+enum MoveStatus { next, wait, progress, progressed, start, end, paused }

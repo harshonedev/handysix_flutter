@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/controllers/practice_game_controller.dart';
@@ -47,99 +48,198 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     super.dispose();
   }
 
+  Future<bool> _onWillPop() async {
+    final state = ref.read(practiceGameController);
+
+    // Only show forfeit dialog if game is in progress
+    if (state is PracticeGameStarted && state.phase != GamePhase.result) {
+      ref.read(practiceGameController.notifier).pauseGame();
+      return await _showForfeitDialog();
+    }
+
+    return true; // Allow back navigation if game is not in progress
+  }
+
+  Future<bool> _showForfeitDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.exit_to_app, color: Colors.orange, size: 24),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Forfeit Game?',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(
+                'Are you sure you want to quit the game? Your progress will be lost.',
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    ref.read(practiceGameController.notifier).resumeGame();
+                    Navigator.of(context).pop(false);
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Continue',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                    ref.read(practiceGameController.notifier).exitGame();
+                    context.pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Forfeit',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GameBackground(
-      child: SafeArea(
-        child: Consumer(
-          builder: (context, ref, widget) {
-            final state = ref.watch(practiceGameController);
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: GameBackground(
+        child: SafeArea(
+          child: Consumer(
+            builder: (context, ref, widget) {
+              final state = ref.watch(practiceGameController);
 
-            // Listen for move status changes to trigger animation
-            ref.listen<PracticeGameState>(practiceGameController, (
-              previous,
-              current,
-            ) {
-              if (current is PracticeGameStarted &&
-                  (current.moveStatus == MoveStatus.progress ||
-                      current.moveStatus == MoveStatus.next)) {
-                _playAnimation();
-              }
-            });
+              // Listen for move status changes to trigger animation
+              ref.listen<PracticeGameState>(practiceGameController, (
+                previous,
+                current,
+              ) {
+                if (current is PracticeGameStarted &&
+                    (current.moveStatus == MoveStatus.progress ||
+                        current.moveStatus == MoveStatus.next)) {
+                  _playAnimation();
+                }
+              });
 
-            if (state is PracticeGameStarted) {
-              return Column(
-                children: [
-                  const SizedBox(height: 24),
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: _buildPlayerCard(state.computer),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: _buildPlayerCard(state.player),
-                    ),
-                  ),
-
-                  if (state.phase == GamePhase.toss ||
-                      state.phase == GamePhase.startInnigs) ...[
-                    _buildStartInnigsLayout(state.message, state.mainTimer),
-                  ] else if (state.phase == GamePhase.result) ...[
-                    _buildResultLayout(state),
-                  ] else ...[
-                    const Spacer(),
-                    _buildHandGestures(
-                      state.moveChoice,
-                      state.computerChoice,
-                      state.moveStatus,
-                    ),
-                    const Spacer(),
-                    _buildTimerAndMessage(state),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: _buildMovesController(state),
-                    ),
-                  ],
-                ],
-              );
-            } else if (state is PracticeGameError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              if (state is PracticeGameStarted) {
+                return Column(
                   children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text(
-                      state.error,
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.read(practiceGameController.notifier).resetGame();
-                      },
-                      child: Text('Try Again'),
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _buildPlayerCard(state.computer),
+                      ),
                     ),
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: _buildPlayerCard(state.player),
+                      ),
+                    ),
+
+                    if (state.phase == GamePhase.toss ||
+                        state.phase == GamePhase.startInnigs) ...[
+                      _buildStartInnigsLayout(state.message, state.mainTimer),
+                    ] else if (state.phase == GamePhase.result) ...[
+                      _buildResultLayout(state),
+                    ] else ...[
+                      const Spacer(),
+                      _buildHandGestures(
+                        state.moveChoice,
+                        state.computerChoice,
+                        state.moveStatus,
+                      ),
+                      const Spacer(),
+                      _buildTimerAndMessage(state),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: _buildMovesController(state),
+                      ),
+                    ],
                   ],
-                ),
-              );
-            } else {
-              return Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
-          },
+                );
+              } else if (state is PracticeGameError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(
+                        state.error,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(practiceGameController.notifier).resetGame();
+                        },
+                        child: Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
+              }
+            },
+          ),
         ),
       ),
     );
