@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:hand_cricket/screens/auth/auth_screen.dart';
 import 'package:hand_cricket/screens/game/game_result_screen.dart';
+import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
 import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/screens/home/splash_screen.dart';
@@ -11,7 +12,10 @@ class AppRouter {
     initialLocation: '/',
 
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const GameWaitingScreen(),
+      ),
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(
         path: HomeScreen.route,
