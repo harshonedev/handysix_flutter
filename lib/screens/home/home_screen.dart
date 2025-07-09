@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
+import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
 import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
@@ -36,7 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     'cricket-helmet', // Replace with your helmet asset if available
                 title: 'Online Match',
                 subtitle: 'Play With Real Players',
-                onTap: () {},
+                onTap: () {
+                  context.push(GameWaitingScreen.route);
+                },
               ),
               const SizedBox(height: 20),
               _buildActionButton(

@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
-import 'package:hand_cricket/models/player.dart';
+import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 
 class PracticeGameController extends StateNotifier<PracticeGameState> {
@@ -39,13 +39,15 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
     final toss =
         Random().nextBool(); // true for batting first, false for bowling first
 
-    final player = Player(
+    final player = GamePlayer(
+      uid: user.uid,
       name: user.displayName ?? 'Guest',
       avatarUrl: user.photoURL ?? AppConstants.avatarUrl,
       type: PlayerType.player1,
       isBatting: toss,
     );
-    final computer = Player(
+    final computer = GamePlayer(
+      uid: 'computer',
       name: 'Computer',
       avatarUrl: AppConstants.computerAvatarUrl,
       type: PlayerType.computer,
@@ -290,8 +292,8 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
     final currentState = state as PracticeGameStarted;
 
     int? target;
-    Player updatedPlayer = currentState.player;
-    Player updatedComputer = currentState.computer;
+    GamePlayer updatedPlayer = currentState.player;
+    GamePlayer updatedComputer = currentState.computer;
 
     if (phase == GamePhase.innings1) {
     } else {
@@ -627,8 +629,8 @@ class PracticeGameInitial extends PracticeGameState {}
 
 class PracticeGameStarted extends PracticeGameState {
   final GamePhase phase;
-  final Player player;
-  final Player computer;
+  final GamePlayer player;
+  final GamePlayer computer;
   final bool isBattingFirst;
   final String message;
   final int mainTimer;
@@ -654,8 +656,8 @@ class PracticeGameStarted extends PracticeGameState {
 
   PracticeGameStarted copyWith({
     GamePhase? phase,
-    Player? player,
-    Player? computer,
+    GamePlayer? player,
+    GamePlayer? computer,
     bool? isBattingFirst,
     String? message,
     int? mainTimer,
@@ -697,8 +699,8 @@ class PracticeGameStarted extends PracticeGameState {
 }
 
 class PracticeGameResult extends PracticeGameState {
-  final Player player;
-  final Player computer;
+  final GamePlayer player;
+  final GamePlayer computer;
   final String message;
   final PlayerType? winner;
 

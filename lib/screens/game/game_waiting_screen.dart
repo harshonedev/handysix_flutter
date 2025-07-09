@@ -2,16 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
+import 'package:hand_cricket/widgets/message_card.dart';
 import 'package:lottie/lottie.dart';
 
 class GameWaitingScreen extends StatefulWidget {
+  static const String route = '/game/waiting';
   const GameWaitingScreen({super.key});
 
   @override
   State<GameWaitingScreen> createState() => _GameWaitingScreenState();
 }
 
-class _GameWaitingScreenState extends State<GameWaitingScreen> {
+class _GameWaitingScreenState extends State<GameWaitingScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+      value: 0,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,16 +61,26 @@ class _GameWaitingScreenState extends State<GameWaitingScreen> {
             child: _buildPlayerCard(
               'Villian',
               AppConstants.computerAvatarUrl,
-              isWaiting: true,
+              isWaiting: false,
             ),
           ),
 
-          SafeArea(
-            child: Column(
-              children: [
-                //
-              ],
-            ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '3',
+                style: GoogleFonts.poppins(
+                  fontSize: 72,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              MessageCard(
+                message: "Finding suitable match for you...",
+                widthPercent: 0.8,
+              ),
+            ],
           ),
         ],
       ),
@@ -70,10 +102,11 @@ class _GameWaitingScreenState extends State<GameWaitingScreen> {
         height: animSize,
         fit: BoxFit.contain,
         repeat: true,
-        delegates: LottieDelegates(
-          
-        ),
-
+        controller: _controller,
+        onLoaded: (composition) {
+          _controller.duration = composition.duration ~/ 2; // 2x speed
+          _controller.repeat();
+        },
       );
     }
     return Column(

@@ -12,10 +12,7 @@ class AppRouter {
     initialLocation: '/',
 
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const GameWaitingScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(
         path: HomeScreen.route,
@@ -28,6 +25,10 @@ class AppRouter {
       GoRoute(
         path: GameResultScreen.route,
         builder: (context, state) => const GameResultScreen(),
+      ),
+      GoRoute(
+        path: GameWaitingScreen.route,
+        builder: (context, state) => const GameWaitingScreen(),
       ),
     ],
     redirect: (context, state) {

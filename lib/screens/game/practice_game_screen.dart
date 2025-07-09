@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/controllers/practice_game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
-import 'package:hand_cricket/models/player.dart';
+import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/screens/game/game_result_screen.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
 import 'package:lottie/lottie.dart';
@@ -484,7 +484,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildPlayerCard(Player player) {
+  Widget _buildPlayerCard(GamePlayer player) {
     return Column(
       crossAxisAlignment:
           player.type == PlayerType.player1

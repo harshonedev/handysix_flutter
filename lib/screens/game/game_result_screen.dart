@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/controllers/practice_game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
-import 'package:hand_cricket/models/player.dart';
+import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
@@ -194,7 +194,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
     );
   }
 
-  Widget _buildPlayerCard(Player player, PlayerStatus status) {
+  Widget _buildPlayerCard(GamePlayer player, PlayerStatus status) {
     final config = _getStatusConfig(status);
 
     return Column(
@@ -274,6 +274,14 @@ class _GameResultScreenState extends State<GameResultScreen> {
           runsFontSize: 32,
           runsTextFontSize: 12,
         );
+      case PlayerStatus.left:
+        return _StatusConfig(
+          color: Colors.red.withAlpha(100),
+          avatarSize: 60,
+          nameFontSize: 12,
+          runsFontSize: 24,
+          runsTextFontSize: 10,
+        );
     }
   }
 
@@ -282,8 +290,6 @@ class _GameResultScreenState extends State<GameResultScreen> {
     return isWinner ? PlayerStatus.winner : PlayerStatus.loser;
   }
 }
-
-enum PlayerStatus { winner, loser, tie }
 
 class _StatusConfig {
   final Color color;
