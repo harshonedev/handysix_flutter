@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:hand_cricket/controllers/practice_game_controller.dart';
 import 'package:hand_cricket/models/game_player.dart';
 
 class GameRoom extends Equatable {
@@ -125,3 +124,5 @@ class GameRoom extends Equatable {
 enum GameStatus { active, waiting, inactive, finished, paused }
 
 enum GameResult { valid, invalid }
+
+enum GamePhase { toss, innings1, innings2, result, startInnigs }

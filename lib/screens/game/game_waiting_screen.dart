@@ -26,6 +26,7 @@ class _GameWaitingScreenState extends State<GameWaitingScreen>
       duration: Duration(seconds: 2),
       value: 0,
     )..repeat();
+
   }
 
   @override

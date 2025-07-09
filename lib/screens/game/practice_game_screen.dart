@@ -6,6 +6,7 @@ import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/controllers/practice_game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/game_player.dart';
+import 'package:hand_cricket/models/game_room.dart';
 import 'package:hand_cricket/screens/game/game_result_screen.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
 import 'package:lottie/lottie.dart';

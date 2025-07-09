@@ -56,8 +56,9 @@ class GameFirestoreService {
     }
   }
 
-  void listenGameRoom(String id) async {
-    _firestore.collection(collection).doc(id).snapshots().listen((docSnap) {
+  void listeningGameRoom(String id) async {
+    try {
+      _firestore.collection(collection).doc(id).snapshots().listen((docSnap) {
       final data = docSnap.data();
       if (data == null || data.isEmpty) {
         return;
@@ -66,11 +67,15 @@ class GameFirestoreService {
       final room = GameRoom.fromJson(data);
       _roomStreamController.add(room);
     });
+    } catch (e) {
+      _logger.e('Errro while listeningGameRoom - $e');
+      rethrow;
+    }
   }
 
   Future<void> updateGameRoom(String id, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection(collection).doc(id).set(data);
+      await _firestore.collection(collection).doc(id).update(data);
     } catch (e) {
       _logger.e('Error while updateGameRoom - $e');
       rethrow;

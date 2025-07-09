@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/models/game_player.dart';
+import 'package:hand_cricket/models/game_room.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 
 class PracticeGameController extends StateNotifier<PracticeGameState> {
@@ -29,7 +30,7 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
 
   void startGame() async {
     // Get current user from auth service
-    final user = authService.getCurrentUser();
+    final user = await authService.getCurrentUser();
     if (user == null) {
       state = PracticeGameError('User not authenticated');
       return;
@@ -41,8 +42,8 @@ class PracticeGameController extends StateNotifier<PracticeGameState> {
 
     final player = GamePlayer(
       uid: user.uid,
-      name: user.displayName ?? 'Guest',
-      avatarUrl: user.photoURL ?? AppConstants.avatarUrl,
+      name: user.name ?? 'Guest',
+      avatarUrl: user.avatar ?? AppConstants.avatarUrl,
       type: PlayerType.player1,
       isBatting: toss,
     );
@@ -723,7 +724,5 @@ class PracticeGameError extends PracticeGameState {
   @override
   String toString() => 'PracticeGameError: $error';
 }
-
-enum GamePhase { toss, innings1, innings2, result, startInnigs }
 
 enum MoveStatus { next, wait, progress, progressed, start, end, paused }

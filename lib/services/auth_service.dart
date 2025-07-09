@@ -126,13 +126,33 @@ class AuthService {
     }
   }
 
+  Future<UserModel?> getCurrentUser() async {
+    try {
+      final user = getCurrentAuthUser();
+      if (user == null) {
+        return null;
+      }
+
+      final docSnap = await _firestore.collection('users').doc(user.uid).get();
+      final data = docSnap.data();
+      if (data == null || data.isEmpty) {
+        return null;
+      }
+      data['id'] = docSnap.id;
+      return UserModel.fromJson(data);
+    } catch (e) {
+      _logger.e('Error while getCurrentUser - $e');
+      throw Exception('Failed to get user from server');
+    }
+  }
+
   // Get current user
-  User? getCurrentUser() {
+  User? getCurrentAuthUser() {
     try {
       return _auth.currentUser;
     } catch (e) {
       _logger.e('Error getting current user: $e');
-      throw Exception('Failed to get current user');
+      throw Exception('Failed to get current user from firebase');
     }
   }
 }

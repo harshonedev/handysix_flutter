@@ -37,17 +37,11 @@ class AuthProvider extends StateNotifier<AuthState> {
     }
   }
 
-  void getCurrentUser() {
+  Future<void> getCurrentUser() async {
     try {
-      final user = _authService.getCurrentUser();
+      final user = await _authService.getCurrentUser();
       if (user != null) {
-        final userModel = UserModel(
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName,
-          avatar: user.photoURL,
-        );
-        state = Authenticated(userModel);
+        state = Authenticated(user);
       } else {
         state = Unauthenticated();
       }
