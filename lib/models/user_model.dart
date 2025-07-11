@@ -6,26 +6,16 @@ class UserModel extends Equatable {
   final String? name;
   final String? avatar;
 
-  const UserModel({
-    required this.uid,
-    this.email,
-    this.name,
-    this.avatar,
-  });
+  const UserModel({required this.uid, this.email, this.name, this.avatar});
 
   UserModel.fromJson(Map<String, dynamic> json)
-      : uid = json['uid'],
-        email = json['email'],
-        name = json['name'],
-        avatar = json['avatar'];
+    : uid = json['uid'],
+      email = json['email'],
+      name = json['name'],
+      avatar = json['avatar'];
 
   Map<String, dynamic> toJson() {
-    return {
-      'uid': uid,
-      'email': email,
-      'name': name,
-      'avatar': avatar,
-    };
+    return {'uid': uid, 'email': email, 'name': name, 'avatar': avatar};
   }
 
   UserModel copyWith({
@@ -42,6 +32,6 @@ class UserModel extends Equatable {
     );
   }
 
-  @override 
+  @override
   List<Object?> get props => [uid, email, name, avatar];
 }

@@ -138,7 +138,7 @@ class AuthService {
       if (data == null || data.isEmpty) {
         return null;
       }
-      data['id'] = docSnap.id;
+      data['uid'] = docSnap.id;
       return UserModel.fromJson(data);
     } catch (e) {
       _logger.e('Error while getCurrentUser - $e');
