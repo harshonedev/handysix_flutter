@@ -33,6 +33,7 @@ class GameController extends StateNotifier<GameState> {
     _moveTimer?.cancel();
     _startTimer?.cancel();
     _waitingTimer?.cancel();
+    gameFirestoreService.dispose();
     super.dispose();
   }
 
@@ -57,6 +58,7 @@ class GameController extends StateNotifier<GameState> {
     );
 
     if (mode == GameMode.practice) {
+      // computer
       final computer = GamePlayer(
         uid: 'computer',
         name: 'Computer',
@@ -66,8 +68,8 @@ class GameController extends StateNotifier<GameState> {
       );
 
       state = GameWaiting(
-        player1: player,
-        player2: computer,
+        player: player,
+        opponent: computer,
         mode: mode,
         mainTimer: 3,
         message: 'Game Starts in...',
@@ -78,13 +80,127 @@ class GameController extends StateNotifier<GameState> {
       _startGameCountdown();
     } else {
       state = GameWaiting(
-        player1: player,
+        player: player,
         message: 'Waiting for opponent...',
         status: GameWaitingStatus.wait,
         toss: toss,
         mode: mode,
       );
+
+      // start waiting timer
+      _startWaitingTimer();
+
+      _startMatching();
     }
+  }
+
+  void _startWaitingTimer() {
+    if (state is! GameWaiting) return;
+
+    int countdown = 60;
+    _waitingTimer?.cancel();
+    _waitingTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (state is! GameWaiting) {
+        timer.cancel();
+        return;
+      }
+      countdown--;
+      if (countdown < 0) {
+        // timed out
+        timer.cancel();
+        final currentState = state as GameWaiting;
+        state = currentState.copyWith(
+          status: GameWaitingStatus.timedOut,
+          message: 'Could not any match yet!',
+        );
+      }
+    });
+  }
+
+  void _startMatching() async {
+    if (state is! GameWaiting) return;
+
+    final currentState = state as GameWaiting;
+
+    final room = await gameFirestoreService.checkAvailableGameRoom();
+
+    if (room == null) {
+      // create a room
+      final room = GameRoom(
+        id: 'temp',
+        phase: GamePhase.waiting,
+        player1: currentState.player,
+        isBattingFirst: currentState.toss,
+        status: GameStatus.waiting,
+      );
+      final newRoom = await gameFirestoreService.createGameRoom(room);
+
+      // update state with new room data
+      state = currentState.copyWith(roomId: newRoom.id);
+
+      // start listening opponent matching from firestore
+      gameFirestoreService.listeningGameRoom(newRoom.id);
+      _listenGameRoom();
+
+      //
+    } else {
+      // join a room
+
+      // change player type
+      final player = currentState.player.copyWith(type: PlayerType.player2);
+      final gameRoom = room.copyWith(
+        player2: player,
+        status: GameStatus.active,
+        phase: GamePhase.toss,
+      );
+      await gameFirestoreService.joinGameRoom(gameRoom);
+
+      // update state with opponent and player with updated player type
+      state = currentState.copyWith(
+        player: player,
+        opponent: gameRoom.player1,
+        status: GameWaitingStatus.matched,
+        mainTimer: 3,
+        roomId: room.id,
+        message: 'You are matched...',
+      );
+
+      // after matched cancel waiting timer
+      _waitingTimer?.cancel();
+
+      _startGameCountdown();
+    }
+  }
+
+  void _listenGameRoom() {
+    gameFirestoreService.roomStream.listen((room) {
+      // state is game waiting -> update opponent and match starts
+      if (state is GameWaiting && room.player2 != null) {
+        _updateOpponentMatched(room);
+      }
+
+      // state is game started -> update game status - move, opponent
+    });
+  }
+
+  void _updateOpponentMatched(GameRoom room) {
+    if (state is! GameWaiting) return;
+
+    final currentState = state as GameWaiting;
+    if (room.player2 == null && currentState.roomId != room.id) return;
+
+    state = currentState.copyWith(
+      opponent: room.player2,
+      status: GameWaitingStatus.matched,
+      mainTimer: 3,
+      roomId: room.id,
+      message: 'You are matched...',
+    );
+
+    // after matched cancel waiting timer
+    _waitingTimer?.cancel();
+
+    _startGameCountdown();
   }
 
   void _startGameCountdown() {
@@ -121,8 +237,6 @@ class GameController extends StateNotifier<GameState> {
     final currentState = state as GameWaiting;
 
     state = currentState.copyWith(status: GameWaitingStatus.started);
-    //
-
   }
 
   void startGame() async {
@@ -132,14 +246,16 @@ class GameController extends StateNotifier<GameState> {
 
     state = GameStarted(
       phase: GamePhase.toss,
-      player1: currentState.player1,
-      player2: currentState.player2!,
+      player: currentState.player,
+      opponent: currentState.opponent!,
       isBattingFirst: currentState.toss,
       message:
           currentState.toss ? 'You\'re batting first' : 'You\'re bowling first',
       moveChoice: 0,
       computerChoice: 0,
       moveStatus: MoveStatus.start,
+      mode: currentState.mode,
+      roomId: currentState.roomId,
       isPaused: false,
     );
 
@@ -214,7 +330,7 @@ class GameController extends StateNotifier<GameState> {
         _pausedPhase == GamePhase.innings2) {
       if (state is GameStarted) {
         final currentState = state as GameStarted;
-        return currentState.player1.isBatting
+        return currentState.player.isBatting
             ? 'Game resumed! Choose your move!'
             : 'Game resumed! Stop the computer!';
       }
@@ -230,12 +346,11 @@ class GameController extends StateNotifier<GameState> {
 
     GamePhase targetPhase =
         currentState.isBattingFirst
-            ? (currentState.player1.ballsFaced == 6 ||
-                    currentState.player1.isOut
+            ? (currentState.player.ballsFaced == 6 || currentState.player.isOut
                 ? GamePhase.innings2
                 : GamePhase.innings1)
-            : (currentState.player2.ballsFaced == 6 ||
-                    currentState.player2.isOut
+            : (currentState.opponent.ballsFaced == 6 ||
+                    currentState.opponent.isOut
                 ? GamePhase.innings2
                 : GamePhase.innings1);
 
@@ -315,8 +430,8 @@ class GameController extends StateNotifier<GameState> {
     if (phase == GamePhase.innings2) {
       target =
           currentState.isBattingFirst
-              ? currentState.player1.score + 1
-              : currentState.player2.score + 1;
+              ? currentState.player.score + 1
+              : currentState.opponent.score + 1;
 
       message =
           currentState.isBattingFirst
@@ -372,29 +487,29 @@ class GameController extends StateNotifier<GameState> {
     final currentState = state as GameStarted;
 
     int? target;
-    GamePlayer updatedPlayer = currentState.player1;
-    GamePlayer updatedComputer = currentState.player2;
+    GamePlayer updatedPlayer = currentState.player;
+    GamePlayer updatedComputer = currentState.opponent;
 
     if (phase == GamePhase.innings1) {
     } else {
       // Switch batting/bowling for innings 2 and reset stats
-      updatedPlayer = currentState.player1.copyWith(
-        isBatting: !currentState.player1.isBatting,
+      updatedPlayer = currentState.player.copyWith(
+        isBatting: !currentState.player.isBatting,
       );
-      updatedComputer = currentState.player2.copyWith(
-        isBatting: !currentState.player2.isBatting,
+      updatedComputer = currentState.opponent.copyWith(
+        isBatting: !currentState.opponent.isBatting,
       );
 
       target =
           currentState.isBattingFirst
-              ? currentState.player1.score + 1
-              : currentState.player2.score + 1;
+              ? currentState.player.score + 1
+              : currentState.opponent.score + 1;
     }
 
     state = currentState.copyWith(
       phase: phase,
-      player1: updatedPlayer,
-      player2: updatedComputer,
+      player: updatedPlayer,
+      opponent: updatedComputer,
       message: 'Choose a number!',
       moveChoice: 0,
       computerChoice: 0,
@@ -497,27 +612,27 @@ class GameController extends StateNotifier<GameState> {
 
     final currentState = state as GameStarted;
 
-    if (currentState.player1.isBatting) {
+    if (currentState.player.isBatting) {
       // Player is out
-      final updatedPlayer = currentState.player1.copyWith(
+      final updatedPlayer = currentState.player.copyWith(
         isOut: true,
-        ballsFaced: currentState.player1.ballsFaced + 1,
+        ballsFaced: currentState.player.ballsFaced + 1,
       );
 
       state = currentState.copyWith(
-        player1: updatedPlayer,
+        player: updatedPlayer,
         message: 'Oh no! You are out!',
         moveStatus: MoveStatus.progressed,
       );
     } else {
       // Computer is out
-      final updatedComputer = currentState.player2.copyWith(
+      final updatedComputer = currentState.opponent.copyWith(
         isOut: true,
-        ballsFaced: currentState.player2.ballsFaced + 1,
+        ballsFaced: currentState.opponent.ballsFaced + 1,
       );
 
       state = currentState.copyWith(
-        player2: updatedComputer,
+        opponent: updatedComputer,
         message: 'Yay! Bowled them out!',
         moveStatus: MoveStatus.progressed,
       );
@@ -534,27 +649,27 @@ class GameController extends StateNotifier<GameState> {
 
     final currentState = state as GameStarted;
 
-    if (currentState.player1.isBatting) {
+    if (currentState.player.isBatting) {
       // Player is batting
-      final updatedPlayer = currentState.player1.copyWith(
-        score: currentState.player1.score + playerMove,
-        ballsFaced: currentState.player1.ballsFaced + 1,
+      final updatedPlayer = currentState.player.copyWith(
+        score: currentState.player.score + playerMove,
+        ballsFaced: currentState.player.ballsFaced + 1,
       );
 
       state = currentState.copyWith(
-        player1: updatedPlayer,
+        player: updatedPlayer,
         message: _getScoreMessage(playerMove),
         moveStatus: MoveStatus.progressed,
       );
     } else {
       // Computer is batting
-      final updatedComputer = currentState.player2.copyWith(
-        score: currentState.player2.score + computerMove,
-        ballsFaced: currentState.player2.ballsFaced + 1,
+      final updatedComputer = currentState.opponent.copyWith(
+        score: currentState.opponent.score + computerMove,
+        ballsFaced: currentState.opponent.ballsFaced + 1,
       );
 
       state = currentState.copyWith(
-        player2: updatedComputer,
+        opponent: updatedComputer,
         message: 'Computer scored $computerMove runs!',
         moveStatus: MoveStatus.progressed,
       );
@@ -563,14 +678,14 @@ class GameController extends StateNotifier<GameState> {
     // Check for chase completion in innings 2
     if (currentState.phase == GamePhase.innings2) {
       final firstInningsScore =
-          currentState.player1.isBatting
-              ? currentState.player2.score
-              : currentState.player1.score;
+          currentState.player.isBatting
+              ? currentState.opponent.score
+              : currentState.player.score;
 
       final currentScore =
-          currentState.player1.isBatting
-              ? currentState.player1.score + playerMove
-              : currentState.player2.score + computerMove;
+          currentState.player.isBatting
+              ? currentState.player.score + playerMove
+              : currentState.opponent.score + computerMove;
 
       if (currentScore > firstInningsScore) {
         // Chase completed
@@ -596,12 +711,12 @@ class GameController extends StateNotifier<GameState> {
     // Check if current batsman is out or has faced 6 balls
     bool inningsEnded = false;
 
-    if (currentState.player1.isBatting) {
+    if (currentState.player.isBatting) {
       inningsEnded =
-          currentState.player1.isOut || currentState.player1.ballsFaced >= 6;
+          currentState.player.isOut || currentState.player.ballsFaced >= 6;
     } else {
       inningsEnded =
-          currentState.player2.isOut || currentState.player2.ballsFaced >= 6;
+          currentState.opponent.isOut || currentState.opponent.ballsFaced >= 6;
     }
 
     if (inningsEnded) {
@@ -625,7 +740,7 @@ class GameController extends StateNotifier<GameState> {
 
     state = currentState.copyWith(
       message:
-          currentState.player1.isBatting
+          currentState.player.isBatting
               ? 'Choose your next move!'
               : 'Stop the computer!',
       moveChoice: 0,
@@ -644,13 +759,13 @@ class GameController extends StateNotifier<GameState> {
     // Determine winner
     String resultMessage;
     PlayerType? winner;
-    if (currentState.player1.score > currentState.player2.score) {
+    if (currentState.player.score > currentState.opponent.score) {
       resultMessage =
-          'Congratulations! You won by ${currentState.player1.score - currentState.player2.score} runs!';
+          'Congratulations! You won by ${currentState.player.score - currentState.opponent.score} runs!';
       winner = PlayerType.player1;
-    } else if (currentState.player2.score > currentState.player1.score) {
+    } else if (currentState.opponent.score > currentState.player.score) {
       resultMessage =
-          'Computer wins by ${currentState.player2.score - currentState.player1.score} runs!';
+          'Computer wins by ${currentState.opponent.score - currentState.player.score} runs!';
       winner = PlayerType.computer;
     } else {
       resultMessage = 'It\'s a tie! Great match!';
@@ -664,8 +779,8 @@ class GameController extends StateNotifier<GameState> {
     // );
 
     state = GameResult(
-      player1: currentState.player1,
-      player2: currentState.player2,
+      player: currentState.player,
+      opponent: currentState.opponent,
       message: resultMessage,
       winner: winner,
     );
@@ -709,8 +824,8 @@ class GameInitial extends GameState {}
 
 class GameStarted extends GameState {
   final GamePhase phase;
-  final GamePlayer player1;
-  final GamePlayer player2;
+  final GamePlayer player;
+  final GamePlayer opponent;
   final bool isBattingFirst;
   final String message;
   final int mainTimer;
@@ -719,11 +834,13 @@ class GameStarted extends GameState {
   final MoveStatus moveStatus;
   final int? target;
   final bool isPaused;
+  final GameMode mode;
+  final String? roomId;
 
   GameStarted({
     this.phase = GamePhase.toss,
-    required this.player1,
-    required this.player2,
+    required this.player,
+    required this.opponent,
     required this.isBattingFirst,
     this.message = '',
     this.mainTimer = 0,
@@ -732,12 +849,14 @@ class GameStarted extends GameState {
     this.target,
     required this.moveStatus,
     this.isPaused = false,
+    required this.mode,
+    this.roomId,
   });
 
   GameStarted copyWith({
     GamePhase? phase,
-    GamePlayer? player1,
-    GamePlayer? player2,
+    GamePlayer? player,
+    GamePlayer? opponent,
     bool? isBattingFirst,
     String? message,
     int? mainTimer,
@@ -746,11 +865,13 @@ class GameStarted extends GameState {
     MoveStatus? moveStatus,
     int? target,
     bool? isPaused,
+    GameMode? mode,
+    String? roomId,
   }) {
     return GameStarted(
       phase: phase ?? this.phase,
-      player1: player1 ?? this.player1,
-      player2: player2 ?? this.player2,
+      player: player ?? this.player,
+      opponent: opponent ?? this.opponent,
       isBattingFirst: isBattingFirst ?? this.isBattingFirst,
       message: message ?? this.message,
       mainTimer: mainTimer ?? this.mainTimer,
@@ -759,14 +880,16 @@ class GameStarted extends GameState {
       moveStatus: moveStatus ?? this.moveStatus,
       target: target ?? this.target,
       isPaused: isPaused ?? this.isPaused,
+      mode: mode ?? this.mode,
+      roomId: roomId ?? this.roomId,
     );
   }
 
   @override
   List<Object?> get props => [
     phase,
-    player1,
-    player2,
+    player,
+    opponent,
     isBattingFirst,
     message,
     mainTimer,
@@ -775,52 +898,58 @@ class GameStarted extends GameState {
     moveStatus,
     target,
     isPaused,
+    mode,
+    roomId,
   ];
 }
 
 class GameWaiting extends GameState {
-  final GamePlayer player1;
-  final GamePlayer? player2;
+  final GamePlayer player;
+  final GamePlayer? opponent;
   final GameMode mode;
   final int mainTimer;
   final String message;
   final bool toss;
   final GameWaitingStatus status;
+  final String? roomId;
 
   GameWaiting({
-    required this.player1,
-    this.player2,
+    required this.player,
+    this.opponent,
     required this.mode,
     this.mainTimer = 0,
     this.message = '',
     required this.status,
     required this.toss,
+    this.roomId,
   });
 
   GameWaiting copyWith({
-    GamePlayer? player1,
-    GamePlayer? player2,
+    GamePlayer? player,
+    GamePlayer? opponent,
     GameMode? mode,
     int? mainTimer,
     String? message,
     GameWaitingStatus? status,
     bool? toss,
+    String? roomId,
   }) {
     return GameWaiting(
-      player1: player1 ?? this.player1,
-      player2: player2 ?? this.player2,
+      player: player ?? this.player,
+      opponent: opponent ?? this.opponent,
       mode: mode ?? this.mode,
       mainTimer: mainTimer ?? this.mainTimer,
       message: message ?? this.message,
       status: status ?? this.status,
       toss: toss ?? this.toss,
+      roomId: roomId ?? this.roomId,
     );
   }
 
   @override
   List<Object?> get props => [
-    player1,
-    player2,
+    player,
+    opponent,
     mode,
     mainTimer,
     message,
@@ -830,16 +959,18 @@ class GameWaiting extends GameState {
 }
 
 class GameResult extends GameState {
-  final GamePlayer player1;
-  final GamePlayer player2;
+  final GamePlayer player;
+  final GamePlayer opponent;
   final String message;
   final PlayerType? winner;
+  final String? roomId;
 
   GameResult({
-    required this.player1,
-    required this.player2,
+    required this.player,
+    required this.opponent,
     required this.message,
     required this.winner,
+    this.roomId,
   });
 }
 

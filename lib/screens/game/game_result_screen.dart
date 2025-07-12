@@ -145,7 +145,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
 
   Widget _buildGameMessage(GameResult gameResult) {
     final isTie = gameResult.winner == null;
-    final isPlayerWinner = gameResult.player1.type == gameResult.winner;
+    final isPlayerWinner = gameResult.player.type == gameResult.winner;
     final playerStatus = _getPlayerStatus(isTie, isPlayerWinner);
     return Column(
       children: [
@@ -177,17 +177,17 @@ class _GameResultScreenState extends State<GameResultScreen> {
 
   Widget _buildPlayerComparison(GameResult gameResult) {
     final isTie = gameResult.winner == null;
-    final isPlayerWinner = gameResult.player1.type == gameResult.winner;
+    final isPlayerWinner = gameResult.player.type == gameResult.winner;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildPlayerCard(
-          gameResult.player1,
+          gameResult.player,
           _getPlayerStatus(isTie, isPlayerWinner),
         ),
         _buildPlayerCard(
-          gameResult.player2,
+          gameResult.opponent,
           _getPlayerStatus(isTie, !isPlayerWinner),
         ),
       ],

@@ -32,9 +32,12 @@ class GamePlayer extends Equatable {
       ballsFaced: json['ballsFaced'],
       isOut: json['isOut'],
       type: PlayerType.values.firstWhere((type) => type.name == json['type']),
-      status: PlayerStatus.values.firstWhere(
-        (status) => status.name == json['status'],
-      ),
+      status:
+          json['status'] != null
+              ? PlayerStatus.values.firstWhere(
+                (status) => status.name == json['status'],
+              )
+              : null,
       isBatting: json['isBatting'],
     );
   }

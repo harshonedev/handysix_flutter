@@ -38,7 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'Online Match',
                 subtitle: 'Play With Real Players',
                 onTap: () {
-                  context.push(GameWaitingScreen.route);
+                  context.push(
+                    '${GameWaitingScreen.route}/${GameMode.online.name}',
+                  );
                 },
               ),
               const SizedBox(height: 20),

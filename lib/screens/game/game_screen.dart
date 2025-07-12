@@ -36,11 +36,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
-    final state = ref.read(gameController);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(gameController);
 
-    if (state is GameWaiting && state.status == GameWaitingStatus.started) {
-      ref.read(gameController.notifier).startGame();
-    }
+      if (state is GameWaiting && state.status == GameWaitingStatus.started) {
+        ref.read(gameController.notifier).startGame();
+      }
+    });
   }
 
   void _playAnimation() {
@@ -183,14 +185,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       alignment: Alignment.topRight,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: _buildPlayerCard(state.player2),
+                        child: _buildPlayerCard(state.opponent),
                       ),
                     ),
                     Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: _buildPlayerCard(state.player1),
+                        child: _buildPlayerCard(state.player),
                       ),
                     ),
 
@@ -503,10 +505,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment:
                   player.type == PlayerType.player1
+
                       ? MainAxisAlignment.start
                       : MainAxisAlignment.end,
               children: [
-                if (player.type == PlayerType.player1) ...[
+                if (player.type == PlayerType.player2) ...[
                   Container(
                     width: 40,
                     height: 40,

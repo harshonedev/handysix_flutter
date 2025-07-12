@@ -69,7 +69,8 @@ class GameRoom extends Equatable {
       id: json['id'],
       phase: GamePhase.values.firstWhere((e) => e.name == json['phase']),
       player1: GamePlayer.fromJson(json['player1']),
-      player2: json['player2'] ? GamePlayer.fromJson(json['player2']) : null,
+      player2:
+          json['player2'] != null ? GamePlayer.fromJson(json['player2']) : null,
       isBattingFirst: json['isBattingFirst'],
       message: json['message'],
       player1choice: json['player1choice'],
@@ -82,8 +83,10 @@ class GameRoom extends Equatable {
       isTie: json['isTie'],
       status: GameStatus.values.firstWhere((e) => e.name == json['status']),
       result:
-          json['result']
-              ? GameResultType.values.firstWhere((e) => e.name == json['result'])
+          json['result'] != null
+              ? GameResultType.values.firstWhere(
+                (e) => e.name == json['result'],
+              )
               : null,
     );
   }
@@ -125,4 +128,4 @@ enum GameStatus { active, waiting, inactive, finished, paused }
 
 enum GameResultType { valid, invalid }
 
-enum GamePhase { toss, innings1, innings2, result, startInnigs }
+enum GamePhase { toss, innings1, innings2, result, startInnigs, waiting }

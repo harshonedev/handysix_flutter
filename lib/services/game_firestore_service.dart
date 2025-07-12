@@ -13,18 +13,18 @@ class GameFirestoreService {
   final String collection = 'games';
   final StreamController<GameRoom> _roomStreamController =
       StreamController.broadcast();
-  Stream get roomStream => _roomStreamController.stream;
+  Stream<GameRoom> get roomStream => _roomStreamController.stream;
 
   Future<GameRoom> createGameRoom(GameRoom gameRoom) async {
     try {
       final data = gameRoom.toJson();
-      data.remove('id');
       final docRef = await _firestore.collection(collection).add(data);
       data['id'] = docRef.id;
+      _logger.i('Game room data while createGameRoom - $data');
       return GameRoom.fromJson(data);
     } catch (e) {
       _logger.e("Error while createGameRoom - $e");
-      rethrow;
+      throw Exception('Error - $e');
     }
   }
 
@@ -37,11 +37,12 @@ class GameFirestoreService {
               .get();
       if (snapShot.docs.isEmpty) return null;
       final data = snapShot.docs.first.data();
+      _logger.i('Game room snapshot data - $data');
       data['id'] = snapShot.docs.first.id;
       return GameRoom.fromJson(data);
     } catch (e) {
       _logger.e('Error while checkAvailableGameRoom - $e');
-      rethrow;
+      throw Exception('Error - $e');
     }
   }
 
@@ -52,24 +53,24 @@ class GameFirestoreService {
       await _firestore.collection(collection).doc(gameRoom.id).set(data);
     } catch (e) {
       _logger.e('Error while joinGameRoom - $e');
-      rethrow;
+      throw Exception('Error - $e');
     }
   }
 
   void listeningGameRoom(String id) async {
     try {
       _firestore.collection(collection).doc(id).snapshots().listen((docSnap) {
-      final data = docSnap.data();
-      if (data == null || data.isEmpty) {
-        return;
-      }
-      data['id'] = id;
-      final room = GameRoom.fromJson(data);
-      _roomStreamController.add(room);
-    });
+        final data = docSnap.data();
+        if (data == null || data.isEmpty) {
+          return;
+        }
+        data['id'] = id;
+        final room = GameRoom.fromJson(data);
+        _roomStreamController.add(room);
+      });
     } catch (e) {
       _logger.e('Errro while listeningGameRoom - $e');
-      rethrow;
+      throw Exception('Error - $e');
     }
   }
 
@@ -78,7 +79,12 @@ class GameFirestoreService {
       await _firestore.collection(collection).doc(id).update(data);
     } catch (e) {
       _logger.e('Error while updateGameRoom - $e');
-      rethrow;
+      throw Exception('Error - $e');
     }
+  }
+
+  void dispose() {
+    _roomStreamController.close();
+    roomStream.drain();
   }
 }

@@ -34,7 +34,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
       value: 0,
     )..repeat();
 
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(gameController.notifier).initializeGame(widget.mode);
     });
   }
@@ -51,8 +51,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
 
     if (state is GameWaiting) {
       if (state.status == GameWaitingStatus.started) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          print('Open Game Screen');
+        WidgetsBinding.instance.addPostFrameCallback((_) { 
           context.go(GameScreen.route);
         });
       }
@@ -72,8 +71,8 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
               top: 100,
               left: 50,
               child: _buildPlayerCard(
-                state.player1.name,
-                state.player1.avatarUrl,
+                state.player.name,
+                state.player.avatarUrl,
               ),
             ),
 
@@ -82,8 +81,8 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
               bottom: 100,
               right: 50,
               child: _buildPlayerCard(
-                state.player2?.name ?? "Player 2",
-                state.player2?.avatarUrl ?? AppConstants.avatarUrl,
+                state.opponent?.name ?? "Opponent",
+                state.opponent?.avatarUrl ?? AppConstants.avatarUrl,
                 isWaiting: state.status != GameWaitingStatus.matched,
               ),
             ),
