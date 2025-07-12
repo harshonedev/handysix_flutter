@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
-import 'package:hand_cricket/controllers/practice_game_controller.dart';
+import 'package:hand_cricket/controllers/game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/models/game_room.dart';
@@ -11,15 +11,16 @@ import 'package:hand_cricket/screens/game/game_result_screen.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
 import 'package:lottie/lottie.dart';
 
-class PracticeGameScreen extends ConsumerStatefulWidget {
-  static const String route = '/game/practice';
-  const PracticeGameScreen({super.key});
+class GameScreen extends ConsumerStatefulWidget {
+  static const String route = '/game/play';
+  final GameMode mode;
+  const GameScreen({super.key, required this.mode});
 
   @override
-  ConsumerState<PracticeGameScreen> createState() => _PracticeGameScreenState();
+  ConsumerState<GameScreen> createState() => _GameScreenState();
 }
 
-class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
+class _GameScreenState extends ConsumerState<GameScreen>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -36,7 +37,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(practiceGameController.notifier).startGame();
+      ref.read(gameController.notifier).initializeGame(GameMode.practice);
     });
   }
 
@@ -52,11 +53,11 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
   }
 
   Future<bool> _onWillPop() async {
-    final state = ref.read(practiceGameController);
+    final state = ref.read(gameController);
 
     // Only show forfeit dialog if game is in progress
-    if (state is PracticeGameStarted && state.phase != GamePhase.result) {
-      ref.read(practiceGameController.notifier).pauseGame();
+    if (state is GameStarted && state.phase != GamePhase.result) {
+      ref.read(gameController.notifier).pauseGame();
       return await _showForfeitDialog();
     }
 
@@ -94,7 +95,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
               actions: [
                 TextButton(
                   onPressed: () {
-                    ref.read(practiceGameController.notifier).resumeGame();
+                    ref.read(gameController.notifier).resumeGame();
                     Navigator.of(context).pop(false);
                   },
                   style: TextButton.styleFrom(
@@ -118,7 +119,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 FilledButton(
                   onPressed: () {
                     Navigator.of(context).pop(true);
-                    ref.read(practiceGameController.notifier).exitGame();
+                    ref.read(gameController.notifier).exitGame();
                     context.pop();
                   },
                   style: FilledButton.styleFrom(
@@ -155,27 +156,27 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
         child: SafeArea(
           child: Consumer(
             builder: (context, ref, widget) {
-              final state = ref.watch(practiceGameController);
+              final state = ref.watch(gameController);
 
-              if (state is PracticeGameResult) {
+              if (state is GameResult) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   context.go(GameResultScreen.route);
                 });
               }
 
               // Listen for move status changes to trigger animation
-              ref.listen<PracticeGameState>(practiceGameController, (
+              ref.listen<GameState>(gameController, (
                 previous,
                 current,
               ) {
-                if (current is PracticeGameStarted &&
+                if (current is GameStarted &&
                     (current.moveStatus == MoveStatus.progress ||
                         current.moveStatus == MoveStatus.next)) {
                   _playAnimation();
                 }
               });
 
-              if (state is PracticeGameStarted) {
+              if (state is GameStarted) {
                 return Column(
                   children: [
                     const SizedBox(height: 24),
@@ -183,14 +184,14 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                       alignment: Alignment.topRight,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: _buildPlayerCard(state.computer),
+                        child: _buildPlayerCard(state.player2),
                       ),
                     ),
                     Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: _buildPlayerCard(state.player),
+                        child: _buildPlayerCard(state.player1),
                       ),
                     ),
 
@@ -214,7 +215,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                     ],
                   ],
                 );
-              } else if (state is PracticeGameError) {
+              } else if (state is GameError) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -233,7 +234,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () {
-                          ref.read(practiceGameController.notifier).resetGame();
+                          ref.read(gameController.notifier).resetGame();
                         },
                         child: Text('Try Again'),
                       ),
@@ -384,7 +385,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildTimerAndMessage(PracticeGameStarted state) {
+  Widget _buildTimerAndMessage(GameStarted state) {
     return Column(
       children: [
         Row(
@@ -737,7 +738,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
   }
 
-  Widget _buildMovesController(PracticeGameStarted state) {
+  Widget _buildMovesController(GameStarted state) {
     return Container(
       padding: const EdgeInsets.all(4.0),
       child: GridView.builder(
@@ -762,9 +763,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                 isDisabled
                     ? null
                     : () {
-                      ref
-                          .read(practiceGameController.notifier)
-                          .chooseMove(moveNumber);
+                      ref.read(gameController.notifier).chooseMove(moveNumber);
                     },
             child: Container(
               decoration: BoxDecoration(

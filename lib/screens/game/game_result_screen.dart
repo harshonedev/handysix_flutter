@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
-import 'package:hand_cricket/controllers/practice_game_controller.dart';
+import 'package:hand_cricket/controllers/game_controller.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/game_player.dart';
-import 'package:hand_cricket/screens/game/practice_game_screen.dart';
+import 'package:hand_cricket/screens/game/game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
@@ -25,12 +25,12 @@ class _GameResultScreenState extends State<GameResultScreen> {
       body: Background(
         child: Consumer(
           builder: (context, ref, child) {
-            final state = ref.read(practiceGameController);
-            if (state is PracticeGameResult) {
+            final state = ref.read(gameController);
+            if (state is GameResult) {
               return PopScope(
                 canPop: false,
                 onPopInvokedWithResult: (didPop, result) {
-                  ref.read(practiceGameController.notifier).exitGame();
+                  ref.read(gameController.notifier).exitGame();
                   context.go(HomeScreen.route);
                 },
                 child: SafeArea(
@@ -47,7 +47,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   ref
-                                      .read(practiceGameController.notifier)
+                                      .read(gameController.notifier)
                                       .exitGame();
                                   context.go(HomeScreen.route);
                                 },
@@ -78,9 +78,9 @@ class _GameResultScreenState extends State<GameResultScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   ref
-                                      .read(practiceGameController.notifier)
+                                      .read(gameController.notifier)
                                       .exitGame();
-                                  context.go(PracticeGameScreen.route);
+                                  context.go(GameScreen.route);
                                 },
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
@@ -119,7 +119,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
     );
   }
 
-  Widget _buildResultCard(PracticeGameResult gameResult) {
+  Widget _buildResultCard(GameResult gameResult) {
     return Container(
       width: MediaQuery.of(context).size.width * 0.9,
       padding: const EdgeInsets.all(16),
@@ -143,9 +143,9 @@ class _GameResultScreenState extends State<GameResultScreen> {
     );
   }
 
-  Widget _buildGameMessage(PracticeGameResult gameResult) {
+  Widget _buildGameMessage(GameResult gameResult) {
     final isTie = gameResult.winner == null;
-    final isPlayerWinner = gameResult.player.type == gameResult.winner;
+    final isPlayerWinner = gameResult.player1.type == gameResult.winner;
     final playerStatus = _getPlayerStatus(isTie, isPlayerWinner);
     return Column(
       children: [
@@ -175,19 +175,19 @@ class _GameResultScreenState extends State<GameResultScreen> {
     );
   }
 
-  Widget _buildPlayerComparison(PracticeGameResult gameResult) {
+  Widget _buildPlayerComparison(GameResult gameResult) {
     final isTie = gameResult.winner == null;
-    final isPlayerWinner = gameResult.player.type == gameResult.winner;
+    final isPlayerWinner = gameResult.player1.type == gameResult.winner;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildPlayerCard(
-          gameResult.player,
+          gameResult.player1,
           _getPlayerStatus(isTie, isPlayerWinner),
         ),
         _buildPlayerCard(
-          gameResult.computer,
+          gameResult.player2,
           _getPlayerStatus(isTie, !isPlayerWinner),
         ),
       ],

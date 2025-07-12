@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hand_cricket/app/providers.dart';
+import 'package:hand_cricket/controllers/game_controller.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
+import 'package:hand_cricket/screens/game/game_screen.dart';
 import 'package:hand_cricket/widgets/message_card.dart';
 import 'package:lottie/lottie.dart';
 
-class GameWaitingScreen extends StatefulWidget {
+class GameWaitingScreen extends ConsumerStatefulWidget {
   static const String route = '/game/waiting';
-  const GameWaitingScreen({super.key});
+  final GameMode mode;
+
+  const GameWaitingScreen({super.key, required this.mode});
 
   @override
-  State<GameWaitingScreen> createState() => _GameWaitingScreenState();
+  ConsumerState<GameWaitingScreen> createState() => _GameWaitingScreenState();
 }
 
-class _GameWaitingScreenState extends State<GameWaitingScreen>
+class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
     with TickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -27,6 +34,9 @@ class _GameWaitingScreenState extends State<GameWaitingScreen>
       value: 0,
     )..repeat();
 
+    Future.microtask(() {
+      ref.read(gameController.notifier).initializeGame(widget.mode);
+    });
   }
 
   @override
@@ -37,55 +47,67 @@ class _GameWaitingScreenState extends State<GameWaitingScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: SvgPicture.asset(
-              'assets/images/waiting-bg.svg',
-              fit: BoxFit.fill,
-            ),
-          ),
-
-          // Top-left player
-          Positioned(
-            top: 100,
-            left: 50,
-            child: _buildPlayerCard('Harsh', AppConstants.avatarUrl),
-          ),
-
-          // Bottom-right player
-          Positioned(
-            bottom: 100,
-            right: 50,
-            child: _buildPlayerCard(
-              'Villian',
-              AppConstants.computerAvatarUrl,
-              isWaiting: false,
-            ),
-          ),
-
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '3',
-                style: GoogleFonts.poppins(
-                  fontSize: 72,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+    final state = ref.watch(gameController);
+    if (state is GameStarted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.go(GameScreen.route);
+      });
+    }
+    if (state is GameWaiting) {
+      return Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: SvgPicture.asset(
+                'assets/images/waiting-bg.svg',
+                fit: BoxFit.fill,
               ),
-              MessageCard(
-                message: "Finding suitable match for you...",
-                widthPercent: 0.8,
+            ),
+
+            // Top-left player
+            Positioned(
+              top: 100,
+              left: 50,
+              child: _buildPlayerCard(
+                state.player1.name,
+                state.player1.avatarUrl,
               ),
-            ],
-          ),
-        ],
-      ),
-    );
+            ),
+
+            // Bottom-right player
+            Positioned(
+              bottom: 100,
+              right: 50,
+              child: _buildPlayerCard(
+                state.player2?.name ?? "Player 2",
+                state.player2?.avatarUrl ?? AppConstants.avatarUrl,
+                isWaiting: state.status != GameWaitingStatus.matched,
+              ),
+            ),
+
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (state.status == GameWaitingStatus.matched)
+                  Text(
+                    '3',
+                    style: GoogleFonts.poppins(
+                      fontSize: 72,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                if (state.message.isNotEmpty)
+                  MessageCard(message: state.message, widthPercent: 0.8),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container();
   }
 
   Widget _buildPlayerCard(

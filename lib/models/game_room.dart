@@ -14,7 +14,7 @@ class GameRoom extends Equatable {
   final PlayerType? winner;
   final bool? isTie;
   final GameStatus status;
-  final GameResult? result;
+  final GameResultType? result;
 
   const GameRoom({
     required this.id,
@@ -45,7 +45,7 @@ class GameRoom extends Equatable {
     PlayerType? winner,
     bool? isTie,
     GameStatus? status,
-    GameResult? result,
+    GameResultType? result,
   }) {
     return GameRoom(
       id: id ?? this.id,
@@ -83,7 +83,7 @@ class GameRoom extends Equatable {
       status: GameStatus.values.firstWhere((e) => e.name == json['status']),
       result:
           json['result']
-              ? GameResult.values.firstWhere((e) => e.name == json['result'])
+              ? GameResultType.values.firstWhere((e) => e.name == json['result'])
               : null,
     );
   }
@@ -123,6 +123,6 @@ class GameRoom extends Equatable {
 
 enum GameStatus { active, waiting, inactive, finished, paused }
 
-enum GameResult { valid, invalid }
+enum GameResultType { valid, invalid }
 
 enum GamePhase { toss, innings1, innings2, result, startInnigs }

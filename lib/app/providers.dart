@@ -2,9 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hand_cricket/controllers/practice_game_controller.dart';
+import 'package:hand_cricket/controllers/game_controller.dart';
 import 'package:hand_cricket/providers/auth_provider.dart' as auth_provider;
 import 'package:hand_cricket/services/auth_service.dart';
+import 'package:hand_cricket/services/game_firestore_service.dart';
 
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
   return FirebaseAuth.instance;
@@ -33,7 +34,12 @@ final authProvider =
       return auth_provider.AuthProvider(authService: authService);
     });
 
-final practiceGameController = StateNotifierProvider<
-  PracticeGameController,
-  PracticeGameState
->((ref) => PracticeGameController(authService: ref.read(authServiceProvider)));
+final gameFirestoreServiceProvider = Provider<GameFirestoreService>(
+  (ref) => GameFirestoreService(firestore: ref.read(firestoreProvider)),
+);
+final gameController = StateNotifierProvider<GameController, GameState>(
+  (ref) => GameController(
+    authService: ref.read(authServiceProvider),
+    gameFirestoreService: ref.read(gameFirestoreServiceProvider),
+  ),
+);
