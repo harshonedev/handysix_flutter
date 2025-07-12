@@ -8,13 +8,13 @@ import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/models/game_room.dart';
 import 'package:hand_cricket/screens/game/game_result_screen.dart';
+import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
 import 'package:lottie/lottie.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   static const String route = '/game/play';
-  final GameMode mode;
-  const GameScreen({super.key, required this.mode});
+  const GameScreen({super.key});
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -36,9 +36,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(gameController.notifier).initializeGame(GameMode.practice);
-    });
+    final state = ref.read(gameController);
+
+    if (state is GameWaiting && state.status == GameWaitingStatus.started) {
+      ref.read(gameController.notifier).startGame();
+    }
   }
 
   void _playAnimation() {
@@ -120,7 +122,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   onPressed: () {
                     Navigator.of(context).pop(true);
                     ref.read(gameController.notifier).exitGame();
-                    context.pop();
+                    context.go(HomeScreen.route);
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
@@ -165,10 +167,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
               }
 
               // Listen for move status changes to trigger animation
-              ref.listen<GameState>(gameController, (
-                previous,
-                current,
-              ) {
+              ref.listen<GameState>(gameController, (previous, current) {
                 if (current is GameStarted &&
                     (current.moveStatus == MoveStatus.progress ||
                         current.moveStatus == MoveStatus.next)) {

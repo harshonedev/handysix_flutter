@@ -20,11 +20,9 @@ class AppRouter {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: '${GameScreen.route}/:mode',
+        path: GameScreen.route,
         builder: (context, state) {
-          final param = state.pathParameters['mode'] ?? GameMode.practice;
-          final mode = GameMode.values.firstWhere((e) => param == e);
-          return GameScreen(mode: mode);
+          return GameScreen();
         },
       ), // Placeholder for practice game screen
       GoRoute(
@@ -35,8 +33,8 @@ class AppRouter {
         path: '${GameWaitingScreen.route}/:mode',
 
         builder: (context, state) {
-          final param = state.pathParameters['mode'] ?? GameMode.practice;
-          final mode = GameMode.values.firstWhere((e) => param == e);
+          final param = state.pathParameters['mode'] ?? GameMode.practice.name;
+          final mode = GameMode.values.firstWhere((e) => param == e.name);
           return GameWaitingScreen(mode: mode);
         },
       ),

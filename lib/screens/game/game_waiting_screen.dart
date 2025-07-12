@@ -48,12 +48,14 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gameController);
-    if (state is GameStarted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go(GameScreen.route);
-      });
-    }
+
     if (state is GameWaiting) {
+      if (state.status == GameWaitingStatus.started) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          print('Open Game Screen');
+          context.go(GameScreen.route);
+        });
+      }
       return Scaffold(
         body: Stack(
           fit: StackFit.expand,
@@ -91,7 +93,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
               children: [
                 if (state.status == GameWaitingStatus.matched)
                   Text(
-                    '3',
+                    state.mainTimer.toString(),
                     style: GoogleFonts.poppins(
                       fontSize: 72,
                       fontWeight: FontWeight.bold,

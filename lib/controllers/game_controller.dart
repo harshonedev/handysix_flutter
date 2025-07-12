@@ -43,7 +43,7 @@ class GameController extends StateNotifier<GameState> {
       state = GameError('User not authenticated');
       return;
     }
-    
+
     // Do toss
     final toss =
         Random().nextBool(); // true for batting first, false for bowling first
@@ -75,7 +75,7 @@ class GameController extends StateNotifier<GameState> {
         status: GameWaitingStatus.matched,
       );
 
-      startGameCountdown();
+      _startGameCountdown();
     } else {
       state = GameWaiting(
         player1: player,
@@ -87,7 +87,7 @@ class GameController extends StateNotifier<GameState> {
     }
   }
 
-  void startGameCountdown() {
+  void _startGameCountdown() {
     if (state is! GameWaiting) return;
 
     final currentState = state as GameWaiting;
@@ -97,23 +97,39 @@ class GameController extends StateNotifier<GameState> {
     _startTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (state is! GameWaiting) {
         timer.cancel();
+        return;
       }
       countdown--;
       if (countdown < 0) {
         timer.cancel();
-        startGame();
+        print('Countdown  - Starting Game...');
+        _startingGame();
       } else {
-        state = currentState.copyWith(
+        final newState = currentState.copyWith(
           mainTimer: countdown,
           message: 'Game Starts in...',
         );
+
+        state = newState;
       }
     });
   }
 
+  void _startingGame() {
+    if (state is! GameWaiting) return;
+
+    final currentState = state as GameWaiting;
+
+    state = currentState.copyWith(status: GameWaitingStatus.started);
+    //
+
+  }
+
   void startGame() async {
     if (state is! GameWaiting) return;
+
     final currentState = state as GameWaiting;
+
     state = GameStarted(
       phase: GamePhase.toss,
       player1: currentState.player1,
@@ -843,4 +859,4 @@ enum MoveStatus { next, wait, progress, progressed, start, end, paused }
 
 enum GameMode { online, practice }
 
-enum GameWaitingStatus { wait, matched, timedOut }
+enum GameWaitingStatus { wait, matched, timedOut, started }
