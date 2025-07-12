@@ -6,7 +6,7 @@ class GameRoom extends Equatable {
   final GamePhase phase;
   final GamePlayer player1;
   final GamePlayer? player2;
-  final bool isBattingFirst;
+  final PlayerType whoBattingFirst;
   final String message;
   final int player1choice;
   final int player2choice;
@@ -21,7 +21,7 @@ class GameRoom extends Equatable {
     required this.phase,
     required this.player1,
     this.player2,
-    required this.isBattingFirst,
+    required this.whoBattingFirst,
     this.message = 'Game',
     this.player1choice = 0,
     this.player2choice = 0,
@@ -37,7 +37,7 @@ class GameRoom extends Equatable {
     GamePhase? phase,
     GamePlayer? player1,
     GamePlayer? player2,
-    bool? isBattingFirst,
+    PlayerType? whoBattingFirst,
     String? message,
     int? player1choice,
     int? player2choice,
@@ -52,7 +52,7 @@ class GameRoom extends Equatable {
       phase: phase ?? this.phase,
       player1: player1 ?? this.player1,
       player2: player2 ?? this.player2,
-      isBattingFirst: isBattingFirst ?? this.isBattingFirst,
+      whoBattingFirst: whoBattingFirst ?? this.whoBattingFirst,
       message: message ?? this.message,
       player1choice: player1choice ?? this.player1choice,
       player2choice: player2choice ?? this.player2choice,
@@ -71,7 +71,9 @@ class GameRoom extends Equatable {
       player1: GamePlayer.fromJson(json['player1']),
       player2:
           json['player2'] != null ? GamePlayer.fromJson(json['player2']) : null,
-      isBattingFirst: json['isBattingFirst'],
+      whoBattingFirst: PlayerType.values.firstWhere(
+        (e) => e.name == json['whoBattingFirst'],
+      ),
       message: json['message'],
       player1choice: json['player1choice'],
       player2choice: json['player2choice'],
@@ -96,7 +98,7 @@ class GameRoom extends Equatable {
       'phase': phase.name,
       'player1': player1.toJson(),
       'player2': player2?.toJson(),
-      'isBattingFirst': isBattingFirst,
+      'whoBattingFirst': whoBattingFirst.name,
       'message': message,
       'player1choice': player1choice,
       'player2choice': player2choice,
@@ -113,7 +115,7 @@ class GameRoom extends Equatable {
     phase,
     player1,
     player2,
-    isBattingFirst,
+    whoBattingFirst,
     message,
     player1choice,
     player2choice,

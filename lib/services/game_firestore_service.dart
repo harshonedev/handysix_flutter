@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/models/game_room.dart';
 import 'package:logger/logger.dart';
 
@@ -74,8 +75,30 @@ class GameFirestoreService {
     }
   }
 
-  Future<void> updateGameRoom(String id, Map<String, dynamic> data) async {
+  Future<void> updateGameRoom({
+    required String id,
+    GamePlayer? player,
+    String? message,
+    int? choice,
+    int? target,
+    GameStatus? status,
+    GamePhase? phase,
+    GameResultType? result,
+    PlayerType? winner,
+    bool? isTie,
+  }) async {
     try {
+      Map<String, dynamic> data = {};
+      if (player != null) data[player.type.name] = player.toJson();
+      if (message != null) data['message'] = message;
+      if (choice != null) data['${player!.type.name}choice'] = choice;
+      if (target != null) data['target'] = target;
+      if (status != null) data['status'] = status.name;
+      if (phase != null) data['phase'] = phase.name;
+      if (result != null) data['result'] = result.name;
+      if (winner != null) data['winner'] = winner.name;
+      if (isTie != null) data['isTie'] = isTie;
+
       await _firestore.collection(collection).doc(id).update(data);
     } catch (e) {
       _logger.e('Error while updateGameRoom - $e');

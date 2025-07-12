@@ -203,7 +203,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       const Spacer(),
                       _buildHandGestures(
                         state.moveChoice,
-                        state.computerChoice,
+                        state.opponentChoice,
                         state.moveStatus,
                       ),
                       const Spacer(),
