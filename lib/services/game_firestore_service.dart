@@ -79,7 +79,8 @@ class GameFirestoreService {
     required String id,
     GamePlayer? player,
     String? message,
-    int? choice,
+    int? player1choice,
+    int? player2choice,
     int? target,
     GameStatus? status,
     GamePhase? phase,
@@ -91,7 +92,8 @@ class GameFirestoreService {
       Map<String, dynamic> data = {};
       if (player != null) data[player.type.name] = player.toJson();
       if (message != null) data['message'] = message;
-      if (choice != null) data['${player!.type.name}choice'] = choice;
+      if (player1choice != null) data['player1choice'] = player1choice;
+      if (player2choice != null) data['player2choice'] = player2choice;
       if (target != null) data['target'] = target;
       if (status != null) data['status'] = status.name;
       if (phase != null) data['phase'] = phase.name;

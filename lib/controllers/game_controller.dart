@@ -22,8 +22,6 @@ class GameController extends StateNotifier<GameState> {
   GamePhase? _pausedPhase;
   MoveStatus? _pausedMoveStatus;
 
-  var opponentMove = 0;
-
   GameController({
     required this.authService,
     required this.gameFirestoreService,
@@ -183,27 +181,125 @@ class GameController extends StateNotifier<GameState> {
 
   void _listenGameRoom() {
     gameFirestoreService.roomStream.listen((room) {
+      // Only update if roomId matches
+      final currentRoomId =
+          (state is GameWaiting)
+              ? (state as GameWaiting).roomId
+              : (state is GameStarted)
+              ? (state as GameStarted).roomId
+              : null;
+      if (currentRoomId == null || room.id != currentRoomId) return;
+
       // state is game waiting -> update opponent and match starts
       if (state is GameWaiting && room.player2 != null) {
         _updateOpponentMatched(room);
+        return;
       }
 
-      // state is game started -> update game status - move, opponent
+      // state is game started -> synchronize game state
       if (state is GameStarted) {
-        final currentState = state as GameStarted;
-        if (room.player2 != null) {
-          opponentMove = room.player2choice;
-          state = currentState.copyWith(opponent: room.player2);
-        }
+        _synchronizeGameState(room);
       }
     });
+  }
+
+  void _synchronizeGameState(GameRoom room) {
+    if (state is! GameStarted) return;
+
+    final currentState = state as GameStarted;
+    if (room.player2 == null) return;
+
+    final isPlayer1 = currentState.player.type == PlayerType.player1;
+
+    // Get updated player data from room
+    final myUpdatedPlayer = isPlayer1 ? room.player1 : room.player2!;
+    final opponentUpdatedPlayer = isPlayer1 ? room.player2! : room.player1;
+
+    // Get moves from room
+    final myMove = isPlayer1 ? room.player1choice : room.player2choice;
+    final oppMove = isPlayer1 ? room.player2choice : room.player1choice;
+
+    // Update state with synchronized data
+    final updatedState = currentState.copyWith(
+      player: myUpdatedPlayer,
+      opponent: opponentUpdatedPlayer,
+      moveChoice: myMove,
+      opponentChoice: oppMove,
+      phase: room.phase,
+      target: room.target,
+      message: room.message,
+    );
+
+    state = updatedState;
+
+    // Handle phase transitions
+    if (room.phase != currentState.phase) {
+      _handlePhaseTransition(room.phase, updatedState);
+      return;
+    }
+
+    // Handle move processing - only process if both players have made moves and we haven't processed yet
+    if (currentState.moveStatus == MoveStatus.wait &&
+        myMove != 0 &&
+        oppMove != 0 &&
+        room.result == GameResultType.valid) {
+      _moveTimer?.cancel();
+      _processMoves(myMove);
+    }
+
+    // Handle game result
+    if (room.phase == GamePhase.result && room.status == GameStatus.finished) {
+      _handleGameResult(room);
+    }
+  }
+
+  void _handlePhaseTransition(GamePhase newPhase, GameStarted currentState) {
+    switch (newPhase) {
+      case GamePhase.startInnigs:
+        // Someone triggered innings start countdown
+        if (currentState.phase != GamePhase.startInnigs) {
+          _startInningsCountdown(
+            currentState.phase == GamePhase.toss
+                ? GamePhase.innings1
+                : GamePhase.innings2,
+          );
+        }
+        break;
+      case GamePhase.innings1:
+      case GamePhase.innings2:
+        // Innings started, sync timer if needed
+        if (currentState.moveStatus != MoveStatus.next) {
+          _startMoveTimer();
+        }
+        break;
+      case GamePhase.result:
+        // Game ended
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _handleGameResult(GameRoom room) {
+    if (state is! GameStarted) return;
+
+    final currentState = state as GameStarted;
+
+    state = GameResult(
+      player: currentState.player,
+      opponent: currentState.opponent,
+      message: room.message,
+      winner: room.winner,
+      roomId: room.id,
+    );
   }
 
   void _updateOpponentMatched(GameRoom room) {
     if (state is! GameWaiting) return;
 
     final currentState = state as GameWaiting;
-    if (room.player2 == null && currentState.roomId != room.id) return;
+    // Fix: return if player2 is null OR roomId doesn't match
+    if (room.player2 == null || currentState.roomId != room.id) return;
 
     state = currentState.copyWith(
       opponent: room.player2,
@@ -234,7 +330,6 @@ class GameController extends StateNotifier<GameState> {
       countdown--;
       if (countdown < 0) {
         timer.cancel();
-        print('Countdown  - Starting Game...');
         _startingGame();
       } else {
         final newState = currentState.copyWith(
@@ -521,17 +616,6 @@ class GameController extends StateNotifier<GameState> {
               : currentState.opponent.score + 1;
     }
 
-    // update game room only for online mode
-    if (currentState.mode == GameMode.online && currentState.roomId != null) {
-      gameFirestoreService.updateGameRoom(
-        id: currentState.roomId!,
-        player: updatedPlayer,
-        target: target,
-        choice: 0,
-        phase: phase,
-      );
-    }
-
     state = currentState.copyWith(
       phase: phase,
       player: updatedPlayer,
@@ -542,6 +626,20 @@ class GameController extends StateNotifier<GameState> {
       target: target,
       moveStatus: MoveStatus.next,
     );
+
+    // Update game room for online mode - ensure both players are synchronized
+    if (currentState.mode == GameMode.online && currentState.roomId != null) {
+      gameFirestoreService.updateGameRoom(
+        id: currentState.roomId!,
+        player: updatedPlayer,
+        target: target,
+        player1choice: 0,
+        player2choice: 0,
+        phase: phase,
+        message: 'Choose a number!',
+        result: GameResultType.valid, // Ready for moves
+      );
+    }
 
     _startMoveTimer();
   }
@@ -567,8 +665,34 @@ class GameController extends StateNotifier<GameState> {
 
       if (countdown < 0) {
         timer.cancel();
-        // Auto-select 0 move if player didn't choose
-        _processMoves(current.moveChoice);
+        // Handle time up scenario
+        if (current.mode == GameMode.online) {
+          // In online mode, auto-select random move if player hasn't chosen
+          final finalChoice =
+              current.moveChoice == 0
+                  ? Random().nextInt(6) + 1
+                  : current.moveChoice;
+          // Update Firestore with auto-selected choice if needed
+          if (current.moveChoice == 0) {
+            final isPlayer1 = current.player.type == PlayerType.player1;
+            if (isPlayer1) {
+              gameFirestoreService.updateGameRoom(
+                id: current.roomId!,
+                player1choice: finalChoice,
+              );
+            } else {
+              gameFirestoreService.updateGameRoom(
+                id: current.roomId!,
+                player2choice: finalChoice,
+              );
+            }
+          }
+          // Don't process moves here for online mode - let the room listener handle it
+          // when both players have made their moves
+        } else {
+          // Practice mode - process immediately
+          _processMoves(current.moveChoice);
+        }
       } else {
         state = current.copyWith(
           mainTimer: countdown,
@@ -590,14 +714,7 @@ class GameController extends StateNotifier<GameState> {
     if ((currentState.phase == GamePhase.innings1 ||
             currentState.phase == GamePhase.innings2) &&
         currentState.moveStatus != MoveStatus.progress) {
-      // update choice in game room
-      if (currentState.mode == GameMode.online && currentState.roomId != null) {
-        gameFirestoreService.updateGameRoom(
-          id: currentState.roomId!,
-          choice: moveChoice,
-          player: currentState.player,
-        );
-      }
+      // Update local state first
       state = currentState.copyWith(
         moveChoice: moveChoice,
         message:
@@ -606,7 +723,27 @@ class GameController extends StateNotifier<GameState> {
                 : currentState.message,
       );
 
-      // If timer is running and move is selected, process immediately only in practice mode
+      // Update Firestore for online mode
+      if (currentState.mode == GameMode.online && currentState.roomId != null) {
+        final isPlayer1 = currentState.player.type == PlayerType.player1;
+        if (isPlayer1) {
+          gameFirestoreService.updateGameRoom(
+            id: currentState.roomId!,
+            player1choice: moveChoice,
+            player: currentState.player,
+            result: GameResultType.valid, // Indicate move is ready
+          );
+        } else {
+          gameFirestoreService.updateGameRoom(
+            id: currentState.roomId!,
+            player2choice: moveChoice,
+            player: currentState.player,
+            result: GameResultType.valid, // Indicate move is ready
+          );
+        }
+      }
+
+      // For practice mode, process immediately when timer expires
       if (currentState.mode == GameMode.practice &&
           currentState.mainTimer > 0) {
         _moveTimer?.cancel();
@@ -619,10 +756,18 @@ class GameController extends StateNotifier<GameState> {
     if (state is! GameStarted) return;
 
     final currentState = state as GameStarted;
-    final opponentChoice =
-        currentState.mode == GameMode.online
-            ? opponentMove
-            : Random().nextInt(6) + 1;
+
+    int opponentChoice;
+    if (currentState.mode == GameMode.online) {
+      opponentChoice = currentState.opponentChoice;
+      // Ensure opponent has made a move
+      if (opponentChoice == 0) {
+        // Wait for opponent move
+        return;
+      }
+    } else {
+      opponentChoice = Random().nextInt(6) + 1;
+    }
 
     // Set moves and progress status
     state = currentState.copyWith(
@@ -632,7 +777,15 @@ class GameController extends StateNotifier<GameState> {
       mainTimer: 0,
     );
 
-    //process result
+    // Update game room with result processing status
+    if (currentState.mode == GameMode.online && currentState.roomId != null) {
+      gameFirestoreService.updateGameRoom(
+        id: currentState.roomId!,
+        result: GameResultType.invalid, // Mark as processing
+      );
+    }
+
+    // Process result
     _processResult(playerChoice, opponentChoice);
   }
 
@@ -654,37 +807,59 @@ class GameController extends StateNotifier<GameState> {
     final currentState = state as GameStarted;
 
     if (currentState.player.isBatting) {
-      // Player is out
-      final updatedPlayer = currentState.player.copyWith(
-        isOut: true,
-        ballsFaced: currentState.player.ballsFaced + 1,
+      // Player is out - add the move that got them out
+      final updatedPlayer = currentState.player
+          .addMove(currentState.moveChoice)
+          .copyWith(isOut: true);
+      // Also track opponent's bowling move
+      final updatedOpponent = currentState.opponent.addMove(
+        currentState.opponentChoice,
       );
-
-      // update player on game room
-      if (currentState.mode == GameMode.online && currentState.roomId != null) {
-        gameFirestoreService.updateGameRoom(
-          id: currentState.roomId!,
-          player: updatedPlayer,
-        );
-      }
 
       state = currentState.copyWith(
         player: updatedPlayer,
+        opponent: updatedOpponent,
         message: 'Oh no! You are out!',
         moveStatus: MoveStatus.progressed,
       );
+
+      // Update player on game room
+      if (currentState.mode == GameMode.online && currentState.roomId != null) {
+        final isPlayer1 = currentState.player.type == PlayerType.player1;
+        gameFirestoreService.updateGameRoom(
+          id: currentState.roomId!,
+          player: updatedPlayer,
+          message: 'Player ${isPlayer1 ? '1' : '2'} is out!',
+          result: GameResultType.valid, // Mark result as processed
+        );
+      }
     } else {
-      // Opponent is out
-      final updatedOpponent = currentState.opponent.copyWith(
-        isOut: true,
-        ballsFaced: currentState.opponent.ballsFaced + 1,
+      // Opponent is out - add the move that got them out
+      final updatedOpponent = currentState.opponent
+          .addMove(currentState.opponentChoice)
+          .copyWith(isOut: true);
+      // Also track player's bowling move
+      final updatedPlayer = currentState.player.addMove(
+        currentState.moveChoice,
       );
 
       state = currentState.copyWith(
+        player: updatedPlayer,
         opponent: updatedOpponent,
         message: 'Yay! Bowled them out!',
         moveStatus: MoveStatus.progressed,
       );
+
+      // Update opponent data for online mode - this requires updating the correct player in Firestore
+      if (currentState.mode == GameMode.online && currentState.roomId != null) {
+        final isPlayer1 = currentState.player.type == PlayerType.player1;
+        gameFirestoreService.updateGameRoom(
+          id: currentState.roomId!,
+          player: updatedOpponent,
+          message: 'Player ${isPlayer1 ? '2' : '1'} is out!',
+          result: GameResultType.valid, // Mark result as processed
+        );
+      }
     }
 
     // Continue game after delay
@@ -699,38 +874,54 @@ class GameController extends StateNotifier<GameState> {
     final currentState = state as GameStarted;
 
     if (currentState.player.isBatting) {
-      // Player is batting
-      final updatedPlayer = currentState.player.copyWith(
-        score: currentState.player.score + playerMove,
-        ballsFaced: currentState.player.ballsFaced + 1,
+      // Player is batting - add their move and update score
+      final updatedPlayer = currentState.player
+          .addMove(playerMove)
+          .copyWith(score: currentState.player.score + playerMove);
+      // Also track opponent's bowling move
+      final updatedOpponent = currentState.opponent.addMove(opponentMove);
+
+      state = currentState.copyWith(
+        player: updatedPlayer,
+        opponent: updatedOpponent,
+        message: _getScoreMessage(playerMove),
+        moveStatus: MoveStatus.progressed,
       );
 
-      // update player on game room
+      // Update player on game room
       if (currentState.mode == GameMode.online && currentState.roomId != null) {
         gameFirestoreService.updateGameRoom(
           id: currentState.roomId!,
           player: updatedPlayer,
+          message: _getScoreMessage(playerMove),
+          result: GameResultType.valid, // Mark result as processed
         );
       }
+    } else {
+      // Opponent is batting - add their move and update score
+      final updatedOpponent = currentState.opponent
+          .addMove(opponentMove)
+          .copyWith(score: currentState.opponent.score + opponentMove);
+      // Also track player's bowling move
+      final updatedPlayer = currentState.player.addMove(playerMove);
 
       state = currentState.copyWith(
         player: updatedPlayer,
-        message: _getScoreMessage(playerMove),
-        moveStatus: MoveStatus.progressed,
-      );
-    } else {
-      // opponent  is batting
-      final updatedOpponent = currentState.opponent.copyWith(
-        score: currentState.opponent.score + opponentMove,
-        ballsFaced: currentState.opponent.ballsFaced + 1,
-      );
-
-      state = currentState.copyWith(
         opponent: updatedOpponent,
         message:
             '${currentState.mode == GameMode.practice ? 'Computer' : 'Opponent'} scored $opponentMove runs!',
         moveStatus: MoveStatus.progressed,
       );
+
+      // Update opponent data for online mode
+      if (currentState.mode == GameMode.online && currentState.roomId != null) {
+        gameFirestoreService.updateGameRoom(
+          id: currentState.roomId!,
+          player: updatedOpponent,
+          message: 'Opponent scored $opponentMove runs!',
+          result: GameResultType.valid, // Mark result as processed
+        );
+      }
     }
 
     // Check for chase completion in innings 2
@@ -779,7 +970,16 @@ class GameController extends StateNotifier<GameState> {
 
     if (inningsEnded) {
       if (currentState.phase == GamePhase.innings1) {
-        // start innings 2 countdown timer
+        // Start innings 2 countdown timer
+        // For online mode, update the game room to coordinate phase transition
+        if (currentState.mode == GameMode.online &&
+            currentState.roomId != null) {
+          gameFirestoreService.updateGameRoom(
+            id: currentState.roomId!,
+            phase: GamePhase.startInnigs,
+            message: 'Innings over! Preparing for second innings...',
+          );
+        }
         _startInningsCountdown(GamePhase.innings2);
       } else {
         // Game over
@@ -796,12 +996,19 @@ class GameController extends StateNotifier<GameState> {
 
     final currentState = state as GameStarted;
 
-    // update state on gameroom
+    // Update state on gameroom to reset moves and prepare for next ball
     if (currentState.mode == GameMode.online && currentState.roomId != null) {
+      // Reset both players' choices for next ball
       gameFirestoreService.updateGameRoom(
         id: currentState.roomId!,
         player: currentState.player,
-        choice: 0,
+        player1choice: 0,
+        player2choice: 0,
+        message:
+            currentState.player.isBatting
+                ? 'Choose your next move!'
+                : 'Stop the opponent!',
+        result: GameResultType.valid, // Ready for next move
       );
     }
 
@@ -809,7 +1016,7 @@ class GameController extends StateNotifier<GameState> {
       message:
           currentState.player.isBatting
               ? 'Choose your next move!'
-              : 'Stop the computer!',
+              : 'Stop the opponent!',
       moveChoice: 0,
       opponentChoice: 0,
       moveStatus: MoveStatus.next,
