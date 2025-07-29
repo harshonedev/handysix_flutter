@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/routes/app_router.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
-import 'package:hand_cricket/providers/auth_provider.dart';
+import 'package:hand_cricket/providers/auth/auth_provider.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {

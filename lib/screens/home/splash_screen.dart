@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/routes/app_router.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
-import 'package:hand_cricket/providers/auth_provider.dart';
+import 'package:hand_cricket/providers/auth/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});

@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hand_cricket/controllers/game_controller.dart';
-import 'package:hand_cricket/providers/auth_provider.dart' as auth_provider;
+import 'package:hand_cricket/providers/game/game_controller.dart';
+import 'package:hand_cricket/providers/auth/auth_provider.dart' as auth_provider;
+import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 import 'package:hand_cricket/services/game_firestore_service.dart';
 

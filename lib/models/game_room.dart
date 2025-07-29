@@ -10,6 +10,7 @@ class GameRoom extends Equatable {
   final String message;
   final int player1choice;
   final int player2choice;
+  final int currentMove;
   final int? target;
   final PlayerType? winner;
   final bool? isTie;
@@ -26,6 +27,7 @@ class GameRoom extends Equatable {
     this.player1choice = 0,
     this.player2choice = 0,
     required this.status,
+    this.currentMove = 0,
     this.target,
     this.winner,
     this.isTie,
@@ -44,6 +46,7 @@ class GameRoom extends Equatable {
     int? target,
     PlayerType? winner,
     bool? isTie,
+    int? currentMove,
     GameStatus? status,
     GameResultType? result,
   }) {
@@ -60,6 +63,7 @@ class GameRoom extends Equatable {
       winner: winner ?? this.winner,
       isTie: isTie ?? this.isTie,
       status: status ?? this.status,
+      currentMove: currentMove ?? this.currentMove,
       result: result ?? this.result,
     );
   }
@@ -90,6 +94,7 @@ class GameRoom extends Equatable {
                 (e) => e.name == json['result'],
               )
               : null,
+      currentMove: json['currentMove'] ?? 0,
     );
   }
 
@@ -107,6 +112,7 @@ class GameRoom extends Equatable {
       'isTie': isTie,
       'status': status.name,
       'result': result?.name,
+      'currentMove': currentMove,
     };
   }
 
@@ -123,6 +129,9 @@ class GameRoom extends Equatable {
     status,
     winner,
     isTie,
+    result,
+    currentMove,
+    id, 
   ];
 }
 

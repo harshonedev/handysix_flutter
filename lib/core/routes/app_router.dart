@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:hand_cricket/controllers/game_controller.dart';
+import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/screens/auth/auth_screen.dart';
 import 'package:hand_cricket/screens/game/game_result_screen.dart';
 import 'package:hand_cricket/screens/game/game_waiting_screen.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hand_cricket/controllers/game_controller.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
+import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
