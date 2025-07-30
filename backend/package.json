@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "build": "node src/app.js"
   },
   "type": "module",
   "keywords": [],
@@ -16,10 +17,10 @@
     "@prisma/client": "^6.13.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "morgan": "^1.10.1",
-    "nodemon": "^3.1.10"
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
-    "prisma": "^6.13.0"
+    "prisma": "^6.13.0",
+    "nodemon": "^3.1.10"
   }
 }
