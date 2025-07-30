@@ -8,7 +8,7 @@ const app = express();
 // Load environment variables from .env file
 dotenv.config();
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 // Middleware to parse JSON bodies
 app.use(express.json({ limit: '10mb' }));
