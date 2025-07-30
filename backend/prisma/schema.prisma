@@ -1,0 +1,31 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  uid            String  @unique // Firebase UID
+  name           String
+  email          String? @unique
+  profilePicture String?
+  Stats          Stats?
+
+  @@map("users")
+}
+
+model Stats {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  wins    Int    @default(0)
+  matches Int    @default(0)
+  losses  Int    @default(0)
+  runs    Int    @default(0)
+  userId  String @unique @db.ObjectId
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@map("stats")
+}
