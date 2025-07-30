@@ -110,6 +110,5 @@ class GameFirestoreService {
 
   void dispose() {
     _roomStreamController.close();
-    roomStream.drain();
   }
 }

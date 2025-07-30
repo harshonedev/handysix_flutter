@@ -174,6 +174,9 @@ class GameController extends StateNotifier<GameState> {
       _waitingTimer?.cancel();
 
       _startGameCountdown();
+
+      // start listening opponent matching from firestore
+      _listenGameRoom(room.id);
     }
   }
 
@@ -192,7 +195,6 @@ class GameController extends StateNotifier<GameState> {
       // state is game waiting -> update opponent and match starts
       if (state is GameWaiting && room.player2 != null) {
         _updateOpponentMatched(room);
-        return;
       }
 
       // state is game started -> synchronize game state
@@ -668,9 +670,7 @@ class GameController extends StateNotifier<GameState> {
         if (current.mode == GameMode.online) {
           // In online mode, auto-select random move if player hasn't chosen
           final finalChoice =
-              current.moveChoice == 0
-                  ? Random().nextInt(6) + 1
-                  : current.moveChoice;
+              0; // Default to 0 if no choice made
           // Update Firestore with auto-selected choice if needed
           if (current.moveChoice == 0) {
             final isPlayer1 = current.player.type == PlayerType.player1;
@@ -686,6 +686,8 @@ class GameController extends StateNotifier<GameState> {
               );
             }
           }
+
+          _processMoves(current.moveChoice);
           // Don't process moves here for online mode - let the room listener handle it
           // when both players have made their moves
         } else {
