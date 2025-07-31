@@ -45,3 +45,11 @@ app.*.map.json
 /android/app/release
 
 .github/
+
+# firebase related
+android/app/google-services.json
+firebase.json
+lib/firebase_options.dart
+
+# secure constants
+lib/core/contstants/secure_constants.dart

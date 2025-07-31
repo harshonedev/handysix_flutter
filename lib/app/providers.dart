@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hand_cricket/providers/game/game_controller.dart';
-import 'package:hand_cricket/providers/auth/auth_provider.dart' as auth_provider;
+import 'package:hand_cricket/providers/auth/auth_provider.dart'
+    as auth_provider;
 import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 import 'package:hand_cricket/services/game_firestore_service.dart';
@@ -20,11 +22,21 @@ final firestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
 });
 
+final dioProvider = Provider<Dio>((ref) {
+  return Dio(); // Assuming Dio is used for HTTP requests in your app
+});
+
 final authServiceProvider = Provider<AuthService>((ref) {
   final firebaseAuth = ref.read(firebaseAuthProvider);
   final googleSignIn = ref.read(googleSignInProvider);
   final firestore = ref.read(firestoreProvider);
-  return AuthService(firebaseAuth, googleSignIn, firestore);
+  final dio = ref.read(dioProvider);
+  return AuthService(
+    auth: firebaseAuth,
+    googleSignIn: googleSignIn,
+    firestore: firestore,
+    dio: dio, // Assuming Dio is used for HTTP requests in AuthService
+  );
 });
 
 final authProvider =

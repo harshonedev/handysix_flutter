@@ -11,7 +11,7 @@ model User {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
   uid            String  @unique // Firebase UID
   name           String
-  email          String? @unique
+  email          String?
   profilePicture String?
   Stats          Stats?
 

@@ -17,7 +17,7 @@ app.use(morgan('dev'));
 
 
 // Mount API routes
-app.use('/api', routes);
+app.use('/api/v1', routes);
 
 // Basic route
 app.get('/', (req, res) => {
