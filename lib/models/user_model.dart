@@ -17,11 +17,21 @@ class UserModel extends Equatable {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'],
+      id: json['uid'],
       uid: json['uid'],
       email: json['email'] ?? '',
       name: json['name'] ?? '',
-      avatar: json['profilePicture']  ?? '',
+      avatar: json['profilePicture'] ?? '',
+    );
+  }
+
+  factory UserModel.fromFirebaseUser(dynamic user) {
+    return UserModel(
+      id: user.uid,
+      uid: user.uid,
+      email: user.email ?? '',
+      name: user.displayName ?? '',
+      avatar: user.photoURL ?? '',
     );
   }
 
