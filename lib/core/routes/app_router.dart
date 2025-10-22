@@ -1,9 +1,9 @@
 import 'package:go_router/go_router.dart';
-import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/screens/auth/auth_screen.dart';
-import 'package:hand_cricket/screens/game/game_result_screen.dart';
-import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
-import 'package:hand_cricket/screens/game/practice_game_screen.dart';
+import 'package:hand_cricket/screens/game/screens/game_result_screen.dart';
+import 'package:hand_cricket/screens/game/screens/game_waiting_screen.dart';
+import 'package:hand_cricket/screens/game/screens/online_game_screen.dart';
+import 'package:hand_cricket/screens/game/screens/practice_game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/screens/home/splash_screen.dart';
 
@@ -26,16 +26,20 @@ class AppRouter {
         },
       ), // Placeholder for practice game screen
       GoRoute(
+        path: OnlineGameScreen.route,
+        builder: (context, state) {
+          return OnlineGameScreen();
+        },
+      ),
+      GoRoute(
         path: GameResultScreen.route,
         builder: (context, state) => const GameResultScreen(),
       ),
       GoRoute(
-        path: '${GameWaitingScreen.route}/:mode',
+        path: GameWaitingScreen.route,
 
         builder: (context, state) {
-          final param = state.pathParameters['mode'] ?? GameMode.practice.name;
-          final mode = GameMode.values.firstWhere((e) => param == e.name);
-          return GameWaitingScreen(mode: mode);
+          return GameWaitingScreen();
         },
       ),
     ],

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
 
-class MovesController extends ConsumerWidget {
+class MovesController extends StatelessWidget {
   final MoveStatus moveStatus;
   final int moveChoice;
+  final void Function(int) onMoveChosen;
   const MovesController({
     super.key,
     required this.moveStatus,
     required this.moveChoice,
+    required this.onMoveChosen,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(4.0),
       child: GridView.builder(
@@ -39,9 +39,7 @@ class MovesController extends ConsumerWidget {
                 isDisabled
                     ? null
                     : () {
-                      ref
-                          .read(practiceGameProvider.notifier)
-                          .chooseMove(moveNumber);
+                      onMoveChosen(moveNumber);
                     },
             child: Container(
               decoration: BoxDecoration(

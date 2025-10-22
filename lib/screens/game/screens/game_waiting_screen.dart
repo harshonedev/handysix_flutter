@@ -6,15 +6,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/practice_game_screen.dart';
+import 'package:hand_cricket/screens/game/screens/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/message_card.dart';
 import 'package:lottie/lottie.dart';
 
 class GameWaitingScreen extends ConsumerStatefulWidget {
   static const String route = '/game/waiting';
-  final GameMode mode;
 
-  const GameWaitingScreen({super.key, required this.mode});
+  const GameWaitingScreen({super.key});
 
   @override
   ConsumerState<GameWaitingScreen> createState() => _GameWaitingScreenState();
@@ -35,8 +34,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
     )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // TODO : Initialize waiting for online game
-      ref.read(practiceGameProvider.notifier).initializeGame();
+      ref.read(onlineGameProvider.notifier).initializeGame();
     });
   }
 

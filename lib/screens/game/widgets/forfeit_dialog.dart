@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 
-class ForfeitDialog extends ConsumerWidget {
-  const ForfeitDialog({super.key});
+class ForfeitDialog extends StatelessWidget {
+  final void Function() onResume;
+  final void Function() onForfeit;
+  const ForfeitDialog({super.key, required this.onResume, required this.onForfeit});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -35,7 +35,7 @@ class ForfeitDialog extends ConsumerWidget {
       actions: [
         TextButton(
           onPressed: () {
-            ref.read(practiceGameProvider.notifier).resumeGame();
+            onResume();
             Navigator.of(context).pop(false);
           },
           style: TextButton.styleFrom(
@@ -56,7 +56,7 @@ class ForfeitDialog extends ConsumerWidget {
         FilledButton(
           onPressed: () {
             Navigator.of(context).pop(true);
-            ref.read(practiceGameProvider.notifier).exitGame();
+            onForfeit();
             context.go(HomeScreen.route);
           },
           style: FilledButton.styleFrom(

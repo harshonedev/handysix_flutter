@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/models/game_room.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/game_result_screen.dart';
+import 'package:hand_cricket/screens/game/screens/game_result_screen.dart';
 import 'package:hand_cricket/screens/game/widgets/forfeit_dialog.dart';
 import 'package:hand_cricket/screens/game/widgets/hand_gestures_section.dart';
 import 'package:hand_cricket/screens/game/widgets/moves_controller.dart';
@@ -14,15 +14,15 @@ import 'package:hand_cricket/screens/game/widgets/start_innings_layout.dart';
 import 'package:hand_cricket/screens/game/widgets/timer_and_message_section.dart';
 import 'package:hand_cricket/widgets/game_background.dart';
 
-class PracticeGameScreen extends ConsumerStatefulWidget {
-  static const String route = '/game/play/practice';
-  const PracticeGameScreen({super.key});
+class OnlineGameScreen extends ConsumerStatefulWidget {
+  static const String route = '/game/play/online';
+  const OnlineGameScreen({super.key});
 
   @override
-  ConsumerState<PracticeGameScreen> createState() => _PracticeGameScreenState();
+  ConsumerState<OnlineGameScreen> createState() => _OnlineGameScreenState();
 }
 
-class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
+class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen>
     with TickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -36,7 +36,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(practiceGameProvider.notifier).initializeGame();
+      ref.read(onlineGameProvider.notifier).startGame();
     });
   }
 
@@ -52,7 +52,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
   }
 
   bool get _canPop {
-    final state = ref.read(practiceGameProvider);
+    final state = ref.read(onlineGameProvider);
     return !(state is GameStarted && state.phase != GamePhase.result);
   }
 
@@ -61,7 +61,13 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
         await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (BuildContext context) => const ForfeitDialog(),
+          builder:
+              (BuildContext context) => ForfeitDialog(
+                onForfeit:
+                    () => ref.read(onlineGameProvider.notifier).exitGame(),
+                onResume:
+                    () => ref.read(onlineGameProvider.notifier).resumeGame(),
+              ),
         ) ??
         false;
 
@@ -83,7 +89,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
         child: SafeArea(
           child: Consumer(
             builder: (context, ref, widget) {
-              final state = ref.watch(practiceGameProvider);
+              final state = ref.watch(onlineGameProvider);
 
               if (state is GameResult) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -92,7 +98,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
               }
 
               // Listen for move status changes to trigger animation
-              ref.listen<GameState>(practiceGameProvider, (previous, current) {
+              ref.listen<GameState>(onlineGameProvider, (previous, current) {
                 if (current is GameStarted &&
                     (current.moveStatus == MoveStatus.progress ||
                         current.moveStatus == MoveStatus.next)) {
@@ -144,6 +150,11 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                         child: MovesController(
                           moveChoice: state.moveChoice,
                           moveStatus: state.moveStatus,
+                          onMoveChosen: (moveNumber) {
+                            ref
+                                .read(onlineGameProvider.notifier)
+                                .chooseMove(moveNumber);
+                          },
                         ),
                       ),
                     ],
@@ -168,7 +179,7 @@ class _PracticeGameScreenState extends ConsumerState<PracticeGameScreen>
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () {
-                          ref.read(practiceGameProvider.notifier).resetGame();
+                          ref.read(onlineGameProvider.notifier).resetGame();
                         },
                         child: Text('Try Again'),
                       ),

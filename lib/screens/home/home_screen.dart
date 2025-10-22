@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
-import 'package:hand_cricket/screens/game/practice_game_screen.dart';
+import 'package:hand_cricket/screens/game/screens/game_waiting_screen.dart';
+import 'package:hand_cricket/screens/game/screens/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
 class HomeScreen extends StatefulWidget {

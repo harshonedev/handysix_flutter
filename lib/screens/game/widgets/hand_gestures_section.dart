@@ -39,7 +39,7 @@ class _HandGesturesSectionState extends State<HandGesturesSection> {
         (widget.moveStatus != MoveStatus.next && widget.move > 0)
             ? widget.move
             : 0;
-    final computerMove =
+    final opponentMove =
         (widget.moveStatus != MoveStatus.next && widget.opponentMove > 0)
             ? widget.opponentMove
             : 0;
@@ -91,7 +91,7 @@ class _HandGesturesSectionState extends State<HandGesturesSection> {
                 width: handWidth,
                 child: Center(
                   child: Image.asset(
-                    'assets/hand_gestures/${computerMove}_right.png',
+                    'assets/hand_gestures/${opponentMove}_right.png',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
