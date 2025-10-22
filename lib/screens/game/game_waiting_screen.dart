@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/game_screen.dart';
+import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/message_card.dart';
 import 'package:lottie/lottie.dart';
 
@@ -35,7 +35,8 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
     )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(gameController.notifier).initializeGame(widget.mode);
+      // TODO : Initialize waiting for online game
+      ref.read(practiceGameProvider.notifier).initializeGame();
     });
   }
 
@@ -47,12 +48,12 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(gameController);
+    final state = ref.watch(practiceGameProvider);
 
     if (state is GameWaiting) {
       if (state.status == GameWaitingStatus.started) {
-        WidgetsBinding.instance.addPostFrameCallback((_) { 
-          context.go(GameScreen.route);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.go(PracticeGameScreen.route);
         });
       }
       return Scaffold(
@@ -72,7 +73,9 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
               left: 50,
               child: _buildPlayerCard(
                 state.player.name,
-                state.player.avatarUrl,
+                state.player.avatarUrl.isNotEmpty
+                    ? state.player.avatarUrl
+                    : AppConstants.avatarUrl,
               ),
             ),
 
@@ -82,7 +85,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
               right: 50,
               child: _buildPlayerCard(
                 state.opponent?.name ?? "Opponent",
-                state.opponent?.avatarUrl ?? AppConstants.avatarUrl,
+                state.opponent?.avatarUrl ?? AppConstants.computerAvatarUrl,
                 isWaiting: state.status != GameWaitingStatus.matched,
               ),
             ),
@@ -143,7 +146,12 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
             color: Colors.white,
             shape: BoxShape.circle,
           ),
-          child: ClipOval(child: Image.network(avatarUrl, fit: BoxFit.contain)),
+          child: ClipOval(
+            child: Image.network(
+              avatarUrl.isEmpty ? AppConstants.avatarUrl : avatarUrl,
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
         const SizedBox(height: 4),
         SizedBox(

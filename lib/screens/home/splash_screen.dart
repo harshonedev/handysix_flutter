@@ -48,7 +48,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/images/app_logo.png', height: 120, width: 60),
+            Image.asset(
+              'assets/images/app_logo.png',
+              height: 120,
+              fit: BoxFit.fitWidth,
+            ),
             SizedBox(height: 20),
             CircularProgressIndicator(
               color: Colors.white,

@@ -5,6 +5,7 @@ import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
+import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -51,9 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'Train Your Skills',
                 subtitle: 'Play With AI',
                 onTap: () {
-                  context.push(
-                    '${GameWaitingScreen.route}/${GameMode.practice.name}',
-                  );
+                  context.push(PracticeGameScreen.route);
                 },
               ),
 
@@ -234,6 +233,9 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(color: Color(0xFF1565C0), offset: const Offset(0, 6)),
+          ],
         ),
         child: Row(
           children: [

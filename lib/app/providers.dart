@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hand_cricket/providers/game/game_controller.dart';
+import 'package:hand_cricket/providers/game/practice_game_provider.dart';
 import 'package:hand_cricket/providers/auth/auth_provider.dart'
     as auth_provider;
 import 'package:hand_cricket/providers/game/game_state.dart';
@@ -23,7 +23,7 @@ final firestoreProvider = Provider<FirebaseFirestore>((ref) {
 });
 
 final dioProvider = Provider<Dio>((ref) {
-  return Dio(); // Assuming Dio is used for HTTP requests in your app
+  return Dio(); 
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -35,7 +35,7 @@ final authServiceProvider = Provider<AuthService>((ref) {
     auth: firebaseAuth,
     googleSignIn: googleSignIn,
     firestore: firestore,
-    dio: dio, // Assuming Dio is used for HTTP requests in AuthService
+    dio: dio, 
   );
 });
 
@@ -50,9 +50,8 @@ final authProvider =
 final gameFirestoreServiceProvider = Provider<GameFirestoreService>(
   (ref) => GameFirestoreService(firestore: ref.read(firestoreProvider)),
 );
-final gameController = StateNotifierProvider<GameController, GameState>(
-  (ref) => GameController(
-    authService: ref.read(authServiceProvider),
-    gameFirestoreService: ref.read(gameFirestoreServiceProvider),
+final practiceGameProvider = StateNotifierProvider<PracticeGameProvider, GameState>(
+  (ref) => PracticeGameProvider(
+    authService: ref.read(authServiceProvider)
   ),
 );

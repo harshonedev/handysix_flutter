@@ -3,7 +3,7 @@ import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/screens/auth/auth_screen.dart';
 import 'package:hand_cricket/screens/game/game_result_screen.dart';
 import 'package:hand_cricket/screens/game/game_waiting_screen.dart';
-import 'package:hand_cricket/screens/game/game_screen.dart';
+import 'package:hand_cricket/screens/game/practice_game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/screens/home/splash_screen.dart';
 
@@ -20,9 +20,9 @@ class AppRouter {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: GameScreen.route,
+        path: PracticeGameScreen.route,
         builder: (context, state) {
-          return GameScreen();
+          return PracticeGameScreen();
         },
       ), // Placeholder for practice game screen
       GoRoute(

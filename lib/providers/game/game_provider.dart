@@ -9,7 +9,7 @@ import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 import 'package:hand_cricket/services/game_firestore_service.dart';
 
-class GameController extends StateNotifier<GameState> {
+class GameProvider extends StateNotifier<GameState> {
   final AuthService authService;
   final GameFirestoreService gameFirestoreService;
   Timer? _gameTimer;
@@ -22,7 +22,7 @@ class GameController extends StateNotifier<GameState> {
   GamePhase? _pausedPhase;
   MoveStatus? _pausedMoveStatus;
 
-  GameController({
+  GameProvider({
     required this.authService,
     required this.gameFirestoreService,
   }) : super(GameInitial());
@@ -669,8 +669,7 @@ class GameController extends StateNotifier<GameState> {
         // Handle time up scenario
         if (current.mode == GameMode.online) {
           // In online mode, auto-select random move if player hasn't chosen
-          final finalChoice =
-              0; // Default to 0 if no choice made
+          final finalChoice = 0; // Default to 0 if no choice made
           // Update Firestore with auto-selected choice if needed
           if (current.moveChoice == 0) {
             final isPlayer1 = current.player.type == PlayerType.player1;

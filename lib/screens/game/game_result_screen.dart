@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
+import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
@@ -25,12 +25,12 @@ class _GameResultScreenState extends State<GameResultScreen> {
       body: Background(
         child: Consumer(
           builder: (context, ref, child) {
-            final state = ref.read(gameController);
+            final state = ref.read(practiceGameProvider);
             if (state is GameResult) {
               return PopScope(
                 canPop: false,
                 onPopInvokedWithResult: (didPop, result) {
-                  ref.read(gameController.notifier).exitGame();
+                  ref.read(practiceGameProvider.notifier).exitGame();
                   context.go(HomeScreen.route);
                 },
                 child: SafeArea(
@@ -47,7 +47,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   ref
-                                      .read(gameController.notifier)
+                                      .read(practiceGameProvider.notifier)
                                       .exitGame();
                                   context.go(HomeScreen.route);
                                 },
@@ -78,9 +78,10 @@ class _GameResultScreenState extends State<GameResultScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   ref
-                                      .read(gameController.notifier)
+                                      .read(practiceGameProvider.notifier)
                                       .exitGame();
-                                  context.go(GameScreen.route);
+                                  // TODO change to practice game route
+                                  //context.go(GameScreen.route);
                                 },
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
@@ -208,7 +209,12 @@ class _GameResultScreenState extends State<GameResultScreen> {
             shape: BoxShape.circle,
           ),
           child: ClipOval(
-            child: Image.network(player.avatarUrl, fit: BoxFit.cover),
+            child: Image.network(
+              player.avatarUrl.isNotEmpty
+                  ? player.avatarUrl
+                  : AppConstants.avatarUrl,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 8),
