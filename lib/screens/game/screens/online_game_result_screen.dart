@@ -7,31 +7,30 @@ import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/screens/practice_game_screen.dart';
 import 'package:hand_cricket/screens/home/home_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
-class GameResultScreen extends StatefulWidget {
-  static const String route = '/game/result';
-  const GameResultScreen({super.key});
+class OnlineGameResultScreen extends StatefulWidget {
+  static const String route = '/game/result/online';
+  const OnlineGameResultScreen({super.key});
 
   @override
-  State<GameResultScreen> createState() => _GameResultScreenState();
+  State<OnlineGameResultScreen> createState() => _OnlineGameResultScreenState();
 }
 
-class _GameResultScreenState extends State<GameResultScreen> {
+class _OnlineGameResultScreenState extends State<OnlineGameResultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Background(
         child: Consumer(
           builder: (context, ref, child) {
-            final state = ref.read(practiceGameProvider);
+            final state = ref.read(onlineGameProvider);
             if (state is GameResult) {
               return PopScope(
                 canPop: false,
                 onPopInvokedWithResult: (didPop, result) {
-                  ref.read(practiceGameProvider.notifier).exitGame();
+                  ref.read(onlineGameProvider.notifier).exitGame();
                   context.go(HomeScreen.route);
                 },
                 child: SafeArea(
@@ -48,7 +47,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   ref
-                                      .read(practiceGameProvider.notifier)
+                                      .read(onlineGameProvider.notifier)
                                       .exitGame();
                                   context.go(HomeScreen.route);
                                 },
@@ -79,9 +78,9 @@ class _GameResultScreenState extends State<GameResultScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   ref
-                                      .read(practiceGameProvider.notifier)
+                                      .read(onlineGameProvider.notifier)
                                       .exitGame();
-                                  context.go(PracticeGameScreen.route);
+                                  context.go(OnlineGameResultScreen.route);
                                 },
                                 child: Container(
                                   padding: EdgeInsets.symmetric(

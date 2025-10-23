@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/models/game_room.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/screens/game_result_screen.dart';
+import 'package:hand_cricket/screens/game/screens/online_game_result_screen.dart';
 import 'package:hand_cricket/screens/game/widgets/forfeit_dialog.dart';
 import 'package:hand_cricket/screens/game/widgets/hand_gestures_section.dart';
 import 'package:hand_cricket/screens/game/widgets/moves_controller.dart';
@@ -93,7 +93,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen>
 
               if (state is GameResult) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  context.go(GameResultScreen.route);
+                  context.go(OnlineGameResultScreen.route);
                 });
               }
 
