@@ -39,7 +39,7 @@ class OnlineGameProvider extends StateNotifier<GameState> {
 
   void initializeGame() async {
     // Get current user from auth service
-    final user = await authService.getCurrentUser();
+    final user = authService.getCurrentAuthUser();
     if (user == null) {
       state = GameError('User not authenticated');
       return;
@@ -51,8 +51,8 @@ class OnlineGameProvider extends StateNotifier<GameState> {
 
     final player = GamePlayer(
       uid: user.uid,
-      name: user.name ?? 'Guest',
-      avatarUrl: user.avatar ?? AppConstants.avatarUrl,
+      name: user.displayName ?? 'Guest',
+      avatarUrl: user.photoURL ?? AppConstants.avatarUrl,
       type: PlayerType.player1,
       isBatting: toss,
     );

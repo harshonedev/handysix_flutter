@@ -7,6 +7,7 @@ import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/providers/auth/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
+  static const String route = '/';
   const SplashScreen({super.key});
 
   @override

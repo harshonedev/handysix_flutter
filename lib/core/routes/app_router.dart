@@ -10,11 +10,17 @@ import 'package:hand_cricket/screens/home/splash_screen.dart';
 class AppRouter {
   static bool isAuthenticated = false;
   static final GoRouter router = GoRouter(
-    initialLocation: '/',
+    initialLocation: SplashScreen.route,
 
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: SplashScreen.route,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AuthScreen.route,
+        builder: (context, state) => const AuthScreen(),
+      ),
       GoRoute(
         path: HomeScreen.route,
         builder: (context, state) => const HomeScreen(),
@@ -37,9 +43,8 @@ class AppRouter {
       ),
       GoRoute(
         path: GameWaitingScreen.route,
-
         builder: (context, state) {
-          return GameWaitingScreen();
+          return const GameWaitingScreen();
         },
       ),
     ],

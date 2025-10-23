@@ -2,14 +2,12 @@ import 'package:equatable/equatable.dart';
 
 class UserModel extends Equatable {
   final String id;
-  final String uid;
   final String? email;
   final String? name;
   final String? avatar;
 
   const UserModel({
     required this.id,
-    required this.uid,
     this.email,
     this.name,
     this.avatar,
@@ -18,7 +16,6 @@ class UserModel extends Equatable {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['uid'],
-      uid: json['uid'],
       email: json['email'] ?? '',
       name: json['name'] ?? '',
       avatar: json['profilePicture'] ?? '',
@@ -28,7 +25,6 @@ class UserModel extends Equatable {
   factory UserModel.fromFirebaseUser(dynamic user) {
     return UserModel(
       id: user.uid,
-      uid: user.uid,
       email: user.email ?? '',
       name: user.displayName ?? '',
       avatar: user.photoURL ?? '',
@@ -36,7 +32,7 @@ class UserModel extends Equatable {
   }
 
   Map<String, dynamic> toJson() {
-    return {'uid': uid, 'email': email, 'name': name, 'profilePicture': avatar};
+    return {'email': email, 'name': name, 'profilePicture': avatar};
   }
 
   UserModel copyWith({
@@ -48,7 +44,6 @@ class UserModel extends Equatable {
   }) {
     return UserModel(
       id: id ?? this.id,
-      uid: uid ?? this.uid,
       email: email ?? this.email,
       name: name ?? this.name,
       avatar: avatar ?? this.avatar,
@@ -56,5 +51,5 @@ class UserModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, uid, email, name, avatar];
+  List<Object?> get props => [id, email, name, avatar];
 }

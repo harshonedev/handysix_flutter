@@ -10,6 +10,7 @@ import 'package:hand_cricket/providers/auth/auth_provider.dart';
 import 'package:hand_cricket/widgets/background.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
+  static const String route = '/auth';
   const AuthScreen({super.key});
 
   @override
@@ -23,10 +24,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     AuthState authState = ref.read(authProvider);
     final hasAuthChange = ref.watch(
       authProvider.select(
-        (state) =>
-            state is AuthSuccess ||
-            state is AuthError ||
-            state is Authenticated,
+        (state) => state is AuthError || state is Authenticated,
       ),
     );
     if (hasAuthChange) {
@@ -35,23 +33,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (authState is Authenticated) {
       // If the user is already authenticated, navigate to the home screen
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppRouter.isAuthenticated = true;
-        context.go('/home');
-      });
-    }
-    if (authState is AuthSuccess) {
-      // If the user is logged in, navigate to the home screen
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        //Navigator.pushReplacementNamed(context, '/home');
-        final user = (authState as AuthSuccess).user;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome Back, ${user.name ?? 'Guest'}'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        // Set the authentication state to true
         AppRouter.isAuthenticated = true;
         context.go('/home');
       });

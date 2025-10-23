@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
-import 'package:hand_cricket/providers/game/game_state.dart';
+import 'package:hand_cricket/providers/auth/auth_provider.dart';
 import 'package:hand_cricket/screens/game/screens/game_waiting_screen.dart';
 import 'package:hand_cricket/screens/game/screens/practice_game_screen.dart';
 import 'package:hand_cricket/widgets/background.dart';
@@ -39,9 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'Online Match',
                 subtitle: 'Play With Real Players',
                 onTap: () {
-                  context.push(
-                    '${GameWaitingScreen.route}/${GameMode.online.name}',
-                  );
+                  context.push(GameWaitingScreen.route);
                 },
               ),
               const SizedBox(height: 20),
@@ -102,43 +102,57 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAppBar() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-          child: Image.network(AppConstants.avatarUrl, height: 50, width: 50),
-        ),
-
-        const SizedBox(width: 10),
-
-        // name and greetings
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
+    return Consumer(
+      builder: (context, ref, _) {
+        final authState = ref.watch(authProvider);
+        final user = authState is Authenticated ? authState.user : null;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Hello Guest 👋',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  user != null && user.avatar != null && user.avatar!.isNotEmpty
+                      ? user.avatar!
+                      : AppConstants.avatarUrl,
+                  height: 50,
+                  width: 50,
+                ),
               ),
             ),
 
-            Text(
-              'Let\'s Play',
-              style: GoogleFonts.poppins(
-                color: Colors.white.withAlpha(225),
-                fontSize: 14,
-              ),
+            const SizedBox(width: 10),
+
+            // name and greetings
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Text(
+                  'Hello ${user != null && user.name != null ? user.name : "Guest"} 👋',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                Text(
+                  'Let\'s Play',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white.withAlpha(225),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 

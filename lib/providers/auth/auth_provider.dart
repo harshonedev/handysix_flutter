@@ -14,7 +14,7 @@ class AuthProvider extends StateNotifier<AuthState> {
     try {
       final user = await _authService.signInWithGoogle();
       if (user != null) {
-        state = AuthSuccess(user);
+        state = Authenticated(user);
       } else {
         state = AuthError('Failed to sign in with Google');
       }
@@ -28,7 +28,7 @@ class AuthProvider extends StateNotifier<AuthState> {
     try {
       final user = await _authService.signInAnonymously();
       if (user != null) {
-        state = AuthSuccess(user);
+        state = Authenticated(user);
       } else {
         state = AuthError('Failed to sign in as guest');
       }
@@ -39,9 +39,9 @@ class AuthProvider extends StateNotifier<AuthState> {
 
   Future<void> getCurrentUser() async {
     try {
-      final user = await _authService.getCurrentUser();
+      final user = _authService.getCurrentAuthUser();
       if (user != null) {
-        state = Authenticated(user);
+        state = Authenticated(UserModel.fromFirebaseUser(user));
       } else {
         state = Unauthenticated();
       }
@@ -60,12 +60,7 @@ class AuthInitial extends AuthState {}
 
 class AuthLoading extends AuthState {
   final AuthType authType;
-  AuthLoading({ required this.authType});
-}
-
-class AuthSuccess extends AuthState {
-  final UserModel user;
-  AuthSuccess(this.user);
+  AuthLoading({required this.authType});
 }
 
 class Authenticated extends AuthState {
@@ -80,7 +75,4 @@ class AuthError extends AuthState {
   AuthError(this.error);
 }
 
-enum AuthType {
-  google,
-  anonymous,
-}
+enum AuthType { google, anonymous }

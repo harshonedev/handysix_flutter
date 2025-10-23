@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
 import 'package:hand_cricket/core/contstants/app_constants.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
-import 'package:hand_cricket/screens/game/screens/practice_game_screen.dart';
+import 'package:hand_cricket/screens/game/screens/online_game_screen.dart';
 import 'package:hand_cricket/widgets/message_card.dart';
 import 'package:lottie/lottie.dart';
 
@@ -27,15 +27,15 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(onlineGameProvider.notifier).initializeGame();
+    });
+
     _controller = AnimationController(
       vsync: this,
       duration: Duration(seconds: 2),
       value: 0,
     )..repeat();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(onlineGameProvider.notifier).initializeGame();
-    });
   }
 
   @override
@@ -46,12 +46,12 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(practiceGameProvider);
+    final state = ref.watch(onlineGameProvider);
 
     if (state is GameWaiting) {
       if (state.status == GameWaitingStatus.started) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go(PracticeGameScreen.route);
+          context.go(OnlineGameScreen.route);
         });
       }
       return Scaffold(
@@ -139,7 +139,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
         Container(
           width: avatarSize,
           height: avatarSize,
-          padding: EdgeInsets.all(1),
+          padding: EdgeInsets.all(2),
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
