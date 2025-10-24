@@ -83,7 +83,7 @@ class _GameWaitingScreenState extends ConsumerState<GameWaitingScreen>
               right: 50,
               child: _buildPlayerCard(
                 state.opponent?.name ?? "Opponent",
-                state.opponent?.avatarUrl ?? AppConstants.computerAvatarUrl,
+                state.opponent?.avatarUrl ?? AppConstants.avatarUrl,
                 isWaiting: state.status != GameWaitingStatus.matched,
               ),
             ),

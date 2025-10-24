@@ -1,15 +1,16 @@
 import express from 'express';
 import { login } from './controllers/auth_controller.js';
+import { getGameState } from './controllers/game_controller.js';
 
 
 const router = express.Router();
 
-router.post('/users/login', login);
-router.get('/users/:id', getUserById);
+// Auth routes
+router.post('/user/login', login);
+router.get('/user/:id', getUserById);
 
-// websocket routes
-
-
+// Game routes (WebSocket related)
+router.get('/game/:roomId/state', getGameState);
 
 export default router;
 

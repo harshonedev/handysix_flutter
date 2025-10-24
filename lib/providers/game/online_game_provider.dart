@@ -196,10 +196,8 @@ class OnlineGameProvider extends StateNotifier<GameState> {
 
     // Update state with synchronized data
     final updatedState = currentState.copyWith(
-      player: myUpdatedPlayer,
       opponent: opponentUpdatedPlayer,
       opponentChoice: oppMove,
-      phase: room.phase,
       target: room.target,
     );
 

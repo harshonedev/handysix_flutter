@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HandySix WebSocket Test Client</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            margin: 5px 5px 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 300px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 20px 0;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+        }
+
+        .log-entry.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .log-entry.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎮 HandySix WebSocket Test Client</h1>
+
+        <div id="status" class="status disconnected">Disconnected</div>
+
+        <div class="input-group">
+            <label>Server URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:5000" placeholder="http://localhost:5000">
+            <button onclick="connect()">Connect</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+        </div>
+
+        <div class="input-group">
+            <label>User ID:</label>
+            <input type="text" id="userId" value="test-user-123" placeholder="Enter user ID">
+            <button onclick="authenticate()" id="authBtn" disabled>Authenticate</button>
+        </div>
+
+        <div class="input-group">
+            <label>Room ID:</label>
+            <input type="text" id="roomId" value="game-room-456" placeholder="Enter room ID">
+            <button onclick="joinRoom()" id="joinBtn" disabled>Join Room</button>
+            <button onclick="leaveRoom()" id="leaveBtn" disabled>Leave Room</button>
+        </div>
+
+        <div class="input-group">
+            <label>Send Game Move:</label>
+            <input type="number" id="gesture" value="3" min="0" max="5" placeholder="0-5">
+            <button onclick="sendMove()" id="moveBtn" disabled>Send Move</button>
+        </div>
+
+        <h3>Event Log</h3>
+        <div class="log" id="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let socket = null;
+        let isAuthenticated = false;
+        let currentRoom = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = `status ${connected ? 'connected' : 'disconnected'}`;
+
+            document.getElementById('disconnectBtn').disabled = !connected;
+            document.getElementById('authBtn').disabled = !connected || isAuthenticated;
+            updateRoomButtons();
+        }
+
+        function updateRoomButtons() {
+            const canJoin = socket && socket.connected && isAuthenticated && !currentRoom;
+            const canLeave = socket && socket.connected && currentRoom;
+            const canMove = socket && socket.connected && currentRoom;
+
+            document.getElementById('joinBtn').disabled = !canJoin;
+            document.getElementById('leaveBtn').disabled = !canLeave;
+            document.getElementById('moveBtn').disabled = !canMove;
+        }
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+
+            if (socket && socket.connected) {
+                log('Already connected', 'error');
+                return;
+            }
+
+            log(`Connecting to ${serverUrl}...`);
+
+            socket = io(serverUrl, {
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                log('Connected to server', 'success');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', (reason) => {
+                log(`Disconnected: ${reason}`, 'error');
+                updateStatus(false);
+                isAuthenticated = false;
+                currentRoom = null;
+            });
+
+            socket.on('authenticated', (data) => {
+                log(`Authenticated: ${JSON.stringify(data)}`, 'success');
+                isAuthenticated = true;
+                updateRoomButtons();
+            });
+
+            socket.on('player-joined', (data) => {
+                log(`Player joined: ${JSON.stringify(data)}`, 'info');
+            });
+
+            socket.on('player-left', (data) => {
+                log(`Player left: ${JSON.stringify(data)}`, 'info');
+            });
+
+            socket.on('opponent-move', (data) => {
+                log(`Opponent move: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('game-state-update', (data) => {
+                log(`Game state update: ${JSON.stringify(data)}`, 'info');
+            });
+
+            socket.on('player-disconnected', (data) => {
+                log(`Player disconnected: ${JSON.stringify(data)}`, 'error');
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`Connection error: ${error.message}`, 'error');
+            });
+
+            socket.on('error', (error) => {
+                log(`Socket error: ${error}`, 'error');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                isAuthenticated = false;
+                currentRoom = null;
+                log('Disconnected by user', 'info');
+                updateStatus(false);
+            }
+        }
+
+        function authenticate() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server', 'error');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            if (!userId) {
+                log('Please enter a user ID', 'error');
+                return;
+            }
+
+            log(`Authenticating as ${userId}...`);
+            socket.emit('authenticate', { userId });
+        }
+
+        function joinRoom() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server', 'error');
+                return;
+            }
+
+            if (!isAuthenticated) {
+                log('Please authenticate first', 'error');
+                return;
+            }
+
+            const roomId = document.getElementById('roomId').value;
+            const userId = document.getElementById('userId').value;
+
+            if (!roomId) {
+                log('Please enter a room ID', 'error');
+                return;
+            }
+
+            log(`Joining room ${roomId}...`);
+            socket.emit('join-game', { roomId, userId });
+            currentRoom = roomId;
+            updateRoomButtons();
+        }
+
+        function leaveRoom() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server', 'error');
+                return;
+            }
+
+            if (!currentRoom) {
+                log('Not in a room', 'error');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            log(`Leaving room ${currentRoom}...`);
+            socket.emit('leave-game', { roomId: currentRoom, userId });
+            currentRoom = null;
+            updateRoomButtons();
+        }
+
+        function sendMove() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server', 'error');
+                return;
+            }
+
+            if (!currentRoom) {
+                log('Please join a room first', 'error');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            const gesture = parseInt(document.getElementById('gesture').value);
+
+            if (gesture < 0 || gesture > 5) {
+                log('Gesture must be between 0 and 5', 'error');
+                return;
+            }
+
+            const move = {
+                gesture,
+                timestamp: Date.now()
+            };
+
+            log(`Sending move: gesture=${gesture}`);
+            socket.emit('game-move', { roomId: currentRoom, userId, move });
+        }
+
+        // Initialize
+        updateStatus(false);
+        log('WebSocket test client ready', 'success');
+    </script>
+</body>
+
+</html>

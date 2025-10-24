@@ -1,9 +1,14 @@
 import express from 'express';
+import { createServer } from 'http';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import routes from './routes.js';
+import { connectRedis, disconnectRedis } from './config/redis.config.js';
+import { Server } from 'socket.io';
+import gameEventsHandler from './handlers/gameEventsHandler.js';
 
 const app = express();
+const httpServer = createServer(app);
 
 // Load environment variables from .env file
 dotenv.config();
@@ -21,7 +26,7 @@ app.use('/api/v1', routes);
 
 // Basic route
 app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to Hand Cricket API' });
+    res.json({ message: 'Welcome to Handy Six API' });
 });
 
 // error handling middleware
@@ -41,8 +46,35 @@ app.use((req, res) => {
     });
 });
 
+// Connect Redis 
+await connectRedis();
 
-// Start server
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+// Initialize Socket.IO
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.CORS_ORIGIN || '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    },
+    pingInterval: process.env.SOCKET_PING_INTERVAL || 10000,
+    pingTimeout: process.env.SOCKET_PING_TIMEOUT || 5000,
 });
+
+// Register Socket.IO event handlers
+io.on('connection', (socket) => {
+    const userId = socket.user.uid;
+    console.log(`User connected: ${userId} with socket: ${socket.id}`);
+
+    // Initialize game handler
+    gameEventsHandler(io, socket);
+
+
+});
+
+// Start HTTP server
+httpServer.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    console.log(`WebSocket server ready`);
+});
+
+
+

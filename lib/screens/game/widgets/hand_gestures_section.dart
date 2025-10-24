@@ -36,11 +36,15 @@ class _HandGesturesSectionState extends State<HandGesturesSection> {
 
     // Show default closed fist (0) when no move is selected or during next phase
     final playerMove =
-        (widget.moveStatus != MoveStatus.next && widget.move > 0)
+        (widget.moveStatus != MoveStatus.next &&
+                widget.moveStatus != MoveStatus.wait &&
+                widget.move > 0)
             ? widget.move
             : 0;
     final opponentMove =
-        (widget.moveStatus != MoveStatus.next && widget.opponentMove > 0)
+        (widget.moveStatus != MoveStatus.next &&
+                widget.moveStatus != MoveStatus.wait &&
+                widget.opponentMove > 0)
             ? widget.opponentMove
             : 0;
 
