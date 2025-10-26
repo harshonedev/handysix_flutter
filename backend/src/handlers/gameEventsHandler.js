@@ -2,7 +2,6 @@ import findGameHandler from './findGameHandler.js';
 import playerMoveHandler from './playerMoveHandler.js';
 import disconnectHandler from './disconnectHandler.js';
 import cancelMatchmakingHandler from './cancelMatchmakingHandler.js';
-import { pauseGameHandler, resumeGameHandler } from './pauseResumeHandler.js';
 import { setUserSocket, setUserStatus } from '../utils/redisClient.js';
 
 /**

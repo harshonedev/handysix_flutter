@@ -65,7 +65,7 @@ export const getUserById = async (req, res) => {
                 id: id,
             },
             include: {
-                stats: true, // Include related stats if needed
+                Stats: true, // Include related stats if needed
             },
         });
 
