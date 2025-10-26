@@ -64,7 +64,8 @@ CORS_ORIGIN=*
 REDIS_URL=redis://localhost:6379
 
 # MongoDB Configuration (Prisma)
-DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/handysix?retryWrites=true&w=majority"
+DATABASE_URL="MONNFODB_CONNECTION_STRING_HERE"
+retryWrites=true&w=majority"
 
 # Socket.IO Configuration
 SOCKET_PING_INTERVAL=10000

@@ -47,9 +47,30 @@ app.*.map.json
 .github/
 
 # firebase related
+
+# Firebase config and credentials
 android/app/google-services.json
 firebase.json
 lib/firebase_options.dart
+lib/firebase_options_dev.dart
+lib/firebase_options_prod.dart
+lib/firebase_options_staging.dart
+lib/firebase_options_local.dart
+lib/core/contstants/secure_constants.dart
+.firebaserc
+firestore.indexes.json
+firestore.rules
+firestore.indexes.json
+storage.rules
+firebase-debug.log
+firebase-debug.*.log
+firebase-messaging-sw.js
+firebase-messaging-sw.prod.js
+firebase-messaging-sw.dev.js
+firebase-messaging-sw.staging.js
+firebase-messaging-sw.local.js
+firebase.json
+firebase.
 
 # secure constants
 lib/core/contstants/secure_constants.dart
