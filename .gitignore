@@ -53,3 +53,9 @@ lib/firebase_options.dart
 
 # secure constants
 lib/core/contstants/secure_constants.dart
+
+/# Miscellaneous
+ARCHITECTURE_DIAGRAM.md
+IMPLEMENTATION_SUMMARY.md
+MULTIPLAYER_QUICKSTART.md
+PRELAUNCH_CHECKLIST.md

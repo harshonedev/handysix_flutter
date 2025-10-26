@@ -9,7 +9,7 @@ import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 import 'package:hand_cricket/services/game_firestore_service.dart';
 
-class OnlineGameProvider extends StateNotifier<GameState> {
+class OnlineGameProviderOld extends StateNotifier<GameState> {
   final AuthService authService;
   final GameFirestoreService gameFirestoreService;
   Timer? _gameTimer;
@@ -22,7 +22,7 @@ class OnlineGameProvider extends StateNotifier<GameState> {
   GamePhase? _pausedPhase;
   MoveStatus? _pausedMoveStatus;
 
-  OnlineGameProvider({
+  OnlineGameProviderOld({
     required this.authService,
     required this.gameFirestoreService,
   }) : super(GameInitial());
@@ -189,7 +189,6 @@ class OnlineGameProvider extends StateNotifier<GameState> {
     final isPlayer1 = currentState.player.type == PlayerType.player1;
 
     // Get updated player data from room
-    final myUpdatedPlayer = isPlayer1 ? room.player1 : room.player2!;
     final opponentUpdatedPlayer = isPlayer1 ? room.player2! : room.player1;
 
     final oppMove = isPlayer1 ? room.player2choice : room.player1choice;

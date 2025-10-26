@@ -36,7 +36,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(onlineGameProvider.notifier).startGame();
+      ref.read(onlineGameProvider.notifier).initializeGame();
     });
   }
 
