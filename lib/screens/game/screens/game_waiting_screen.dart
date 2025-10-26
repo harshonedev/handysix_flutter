@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
-import 'package:hand_cricket/core/contstants/app_constants.dart';
+import 'package:hand_cricket/core/constants/app_constants.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/screens/game/screens/online_game_screen.dart';
 import 'package:hand_cricket/widgets/message_card.dart';

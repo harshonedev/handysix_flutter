@@ -10,7 +10,7 @@ export const login = async (req, res) => {
         // validate uid
         if (!uid) {
             return res.status(400).json({
-                success: false,
+                success: false,      
                 message: 'Firebase UID is required'
             });
         }

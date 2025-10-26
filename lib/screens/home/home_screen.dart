@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hand_cricket/app/providers.dart';
-import 'package:hand_cricket/core/contstants/app_constants.dart';
+import 'package:hand_cricket/core/constants/app_constants.dart';
 import 'package:hand_cricket/core/theme/app_theme.dart';
 import 'package:hand_cricket/providers/auth/auth_provider.dart';
 import 'package:hand_cricket/screens/game/screens/game_waiting_screen.dart';

@@ -72,8 +72,11 @@ firebase-messaging-sw.local.js
 firebase.json
 firebase.
 
+# Ignore app constants file
+lib/core/constants/app_constants.dart
 # secure constants
 lib/core/contstants/secure_constants.dart
+
 
 /# Miscellaneous
 ARCHITECTURE_DIAGRAM.md

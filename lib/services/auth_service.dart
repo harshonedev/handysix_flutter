@@ -1,25 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hand_cricket/core/failures/failures.dart';
 import 'package:hand_cricket/models/user_model.dart';
+import 'package:hand_cricket/services/user_local_service.dart';
+import 'package:hand_cricket/services/user_remote_service.dart';
 import 'package:logger/logger.dart';
 
 class AuthService {
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
-  final FirebaseFirestore _firestore;
+  final UserRemoteService _userRemoteService;
+  final UserLocalService _userLocalService;
   final Logger _logger = Logger();
 
   AuthService({
     required FirebaseAuth auth,
     required GoogleSignIn googleSignIn,
     required FirebaseFirestore firestore,
-    required Dio dio,
+    required UserRemoteService userRemoteService,
+    required UserLocalService userLocalService,
   }) : _auth = auth,
        _googleSignIn = googleSignIn,
-       _firestore = firestore;
+       _userLocalService = userLocalService,
+       _userRemoteService = userRemoteService;
 
   // Sign in whith google
   Future<UserModel?> signInWithGoogle() async {
@@ -53,7 +57,15 @@ class AuthService {
         throw AuthFailure('User is null after Google sign-in');
       }
 
-      final userModel = UserModel.fromFirebaseUser(user);
+      final userModel = await _userRemoteService.login(
+        AuthLoginRequestData(
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName ?? 'Guest',
+          photoUrl: user.photoURL,
+        ),
+      );
+      await _userLocalService.saveUser(userModel);
       _logger.d('User signed in with Google: $userModel');
       return userModel;
     } catch (e) {
@@ -73,8 +85,16 @@ class AuthService {
       }
 
       final user = userCredential.user!;
+      final userModel = await _userRemoteService.login(
+        AuthLoginRequestData(
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName ?? 'Guest',
+          photoUrl: user.photoURL,
+        ),
+      );
+      await _userLocalService.saveUser(userModel);
 
-      final userModel = UserModel.fromFirebaseUser(user);
       _logger.d('User signed in anonymously: $userModel');
       return userModel;
     } catch (e) {
@@ -85,18 +105,8 @@ class AuthService {
 
   Future<UserModel?> getCurrentUser() async {
     try {
-      final user = getCurrentAuthUser();
-      if (user == null) {
-        return null;
-      }
-
-      final docSnap = await _firestore.collection('users').doc(user.uid).get();
-      final data = docSnap.data();
-      if (data == null || data.isEmpty) {
-        return null;
-      }
-      data['uid'] = docSnap.id;
-      return UserModel.fromJson(data);
+      final user = await _userLocalService.getUser();
+      return user;
     } catch (e) {
       _logger.e('Error while getCurrentUser - $e');
       throw Exception('Failed to get user from server');

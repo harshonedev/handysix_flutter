@@ -11,6 +11,8 @@ import 'package:hand_cricket/providers/game/game_state.dart';
 import 'package:hand_cricket/services/auth_service.dart';
 import 'package:hand_cricket/services/game_firestore_service.dart';
 import 'package:hand_cricket/services/game_socket_service.dart';
+import 'package:hand_cricket/services/user_local_service.dart';
+import 'package:hand_cricket/services/user_remote_service.dart';
 
 // Socket.IO server URL - update this with your server URL
 const String socketServerUrl = 'http://localhost:5000'; // Change for production
@@ -31,16 +33,27 @@ final dioProvider = Provider<Dio>((ref) {
   return Dio();
 });
 
+final userRemoteServiceProvider = Provider<UserRemoteService>((ref) {
+  final dio = ref.read(dioProvider);
+  return UserRemoteService(dio: dio);
+});
+
+final userLocalServiceProvider = Provider<UserLocalService>((ref) {
+  return UserLocalService();
+});
+
 final authServiceProvider = Provider<AuthService>((ref) {
   final firebaseAuth = ref.read(firebaseAuthProvider);
   final googleSignIn = ref.read(googleSignInProvider);
   final firestore = ref.read(firestoreProvider);
-  final dio = ref.read(dioProvider);
+  final userRemoteService = ref.read(userRemoteServiceProvider);
+  final userLocalService = ref.read(userLocalServiceProvider);
   return AuthService(
     auth: firebaseAuth,
     googleSignIn: googleSignIn,
     firestore: firestore,
-    dio: dio,
+    userRemoteService: userRemoteService,
+    userLocalService: userLocalService,
   );
 });
 
@@ -85,10 +98,9 @@ final practiceGameProvider =
     );
 
 // Online game provider using Socket.IO
-final onlineGameProvider =
-    StateNotifierProvider<OnlineGameProvider, GameState>(
-      (ref) => OnlineGameProvider(
-        authService: ref.read(authServiceProvider),
-        gameSocketService: ref.read(gameSocketServiceProvider),
-      ),
-    );
+final onlineGameProvider = StateNotifierProvider<OnlineGameProvider, GameState>(
+  (ref) => OnlineGameProvider(
+    authService: ref.read(authServiceProvider),
+    gameSocketService: ref.read(gameSocketServiceProvider),
+  ),
+);

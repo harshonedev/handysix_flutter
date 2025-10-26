@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hand_cricket/core/contstants/app_constants.dart';
+import 'package:hand_cricket/core/constants/app_constants.dart';
 import 'package:hand_cricket/models/game_player.dart';
 import 'package:hand_cricket/models/game_room.dart';
 import 'package:hand_cricket/providers/game/game_state.dart';
