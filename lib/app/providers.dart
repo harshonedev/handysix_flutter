@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hand_cricket/providers/game/online_game_provider_socket.dart';
+import 'package:hand_cricket/core/constants/app_constants.dart';
+import 'package:hand_cricket/providers/game/online_game_provider.dart';
 import 'package:hand_cricket/providers/game/practice_game_provider.dart';
 import 'package:hand_cricket/providers/auth/auth_provider.dart'
     as auth_provider;
@@ -15,8 +16,7 @@ import 'package:hand_cricket/services/user_local_service.dart';
 import 'package:hand_cricket/services/user_remote_service.dart';
 
 // Socket.IO server URL - update this with your server URL
-const String socketServerUrl = 'http://localhost:5000'; // Change for production
-
+const String socketServerUrl = AppConstants.backendBaseUrl;
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
   return FirebaseAuth.instance;
 });

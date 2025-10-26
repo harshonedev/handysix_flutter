@@ -1,4 +1,4 @@
-import { getUserById } from '../services/userService.js';
+import { getUserByUid } from '../services/userService.js';
 import {
     addToQueue,
     getQueueLength,
@@ -75,8 +75,8 @@ const findGameHandler = async (io, socket) => {
             }
 
             // 6. Fetch user data from database
-            const player1Data = await getUserById(player1_uid);
-            const player2Data = await getUserById(player2_uid);
+            const player1Data = await getUserByUid(player1_uid);
+            const player2Data = await getUserByUid(player2_uid);
 
             if (!player1Data || !player2Data) {
                 console.error('Failed to fetch user data');

@@ -92,6 +92,7 @@ class GameSocketService {
             .setTransports(['websocket'])
             .enableAutoConnect()
             .setAuth({'uid': userId, 'name': userName, 'email': userEmail})
+            .setTimeout(5000)
             .build(),
       );
 

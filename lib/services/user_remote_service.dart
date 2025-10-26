@@ -12,11 +12,11 @@ class UserRemoteService {
       final url = '${AppConstants.apiBaseUrl}/user/login';
       final response = await _dio.post(url, data: data.toJson());
 
-      if (response.statusCode != 200 || response.statusCode != 201) {
+      if (response.statusCode != 200 && response.statusCode != 201) {
         throw ServerFailure('Failed to login: ${response.statusCode}');
       }
 
-      if (response.data['success'] != 'true') {
+      if (response.data['success'] != true) {
         throw ServerFailure('Login failed: ${response.data['message']}');
       }
 
